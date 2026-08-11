@@ -428,6 +428,115 @@ namespace StrmAssistant.Common
             return results;
         }
 
+        public List<BaseItem> FetchMissingStrmMediaInfoJsonItems(IDirectoryService directoryService)
+        {
+            var libraryScope = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope ?? string.Empty;
+            var allLibraries = string.IsNullOrWhiteSpace(libraryScope);
+            var libraryIds = libraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => allLibraries || libraryIds.Contains(f.Id))
+                .ToList();
+
+            _logger.Info("MediaInfoJsonGapCheck - LibraryScope: " + (allLibraries
+                ? "ALL"
+                : string.Join(", ",
+                    libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
+                        : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
+
+            var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
+            _logger.Info("Include Extra: " + includeExtra);
+
+            var favoritesWithExtra = new List<BaseItem>();
+            if (libraryIds.Contains("-1"))
+            {
+                var favorites = AllUsers.Select(e => e.Key)
+                    .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
+                    {
+                        User = user,
+                        IsFavorite = true
+                    }))
+                    .GroupBy(i => i.InternalId)
+                    .Select(g => g.First())
+                    .ToList();
+
+                var expanded = ExpandFavorites(favorites, false, false, false);
+                favoritesWithExtra = expanded.Concat(includeExtra
+                        ? expanded.SelectMany(f => f.GetExtras(IncludeExtraTypes))
+                        : Enumerable.Empty<BaseItem>())
+                    .ToList();
+            }
+
+            var itemsWithExtras = new List<BaseItem>();
+            if (allLibraries || libraries.Any())
+            {
+                var itemsQuery = new InternalItemsQuery
+                {
+                    HasPath = true,
+                    MediaTypes = new[] { MediaType.Video }
+                };
+
+                if (!allLibraries && libraries.Any())
+                {
+                    itemsQuery.PathStartsWithAny = libraries.SelectMany(l => l.Locations)
+                        .Select(path => path.EndsWith(Path.DirectorySeparatorChar.ToString())
+                            ? path
+                            : path + Path.DirectorySeparatorChar)
+                        .ToArray();
+                }
+
+                itemsWithExtras = _libraryManager.GetItemList(itemsQuery).ToList();
+
+                if (includeExtra)
+                {
+                    itemsQuery.ExtraTypes = IncludeExtraTypes;
+                    itemsWithExtras = _libraryManager.GetItemList(itemsQuery).Concat(itemsWithExtras).ToList();
+                }
+            }
+
+            var results = favoritesWithExtra.Concat(itemsWithExtras)
+                .GroupBy(i => i.InternalId)
+                .Select(g => g.First())
+                .Where(i => i.IsShortcut || IsFileShortcut(i.Path))
+                .Where(i => !Plugin.MediaInfoApi.MediaInfoJsonExists(i, directoryService))
+                .ToList();
+
+            results = OrderByDescending(results);
+            _logger.Info("MediaInfoJsonGapCheck - Number of missing STRM media info json items: " + results.Count);
+
+            return results;
+        }
+
+        public async Task<bool> EnsureMediaInfoJsonAsync(BaseItem item, IDirectoryService directoryService,
+            string source, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Plugin.MediaInfoApi.MediaInfoJsonExists(item, directoryService)) return false;
+
+            if (!HasMediaInfo(item))
+            {
+                var extractResult = await OrchestrateMediaInfoProcessAsync(item, source, cancellationToken, true)
+                    .ConfigureAwait(false);
+                if (extractResult is null)
+                {
+                    throw new InvalidOperationException("MediaInfo extraction did not produce media streams: " +
+                                                        item.Path);
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var serialized = await Plugin.MediaInfoApi
+                .SerializeMediaInfoOrThrow(item.InternalId, directoryService, false, source)
+                .ConfigureAwait(false);
+            if (!serialized && !Plugin.MediaInfoApi.MediaInfoJsonExists(item, directoryService))
+            {
+                throw new InvalidOperationException("MediaInfo JSON serialization did not produce a file: " +
+                                                    item.Path);
+            }
+
+            return serialized;
+        }
+
         private static List<BaseItem> OrderByDescending(List<BaseItem> items)
         {
             var results = items.OrderBy(i => i.ExtraType is null ? 0 : 1)
@@ -643,22 +752,25 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source, CancellationToken cancellationToken)
+        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,
+            CancellationToken cancellationToken, bool forceExtract = false)
         {
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            var persistMediaInfo = taskItem is Video && persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
-            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
+            var persistMediaInfo =
+                !forceExtract && taskItem is Video && persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var mediaInfoRestoreMode =
+                !forceExtract && persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
             {
-                filePath = await GetStrmMountPath(filePath).ConfigureAwait(false);
+                filePath = await GetStrmMountPath(filePath, cancellationToken).ConfigureAwait(false);
             }
 
             if (string.IsNullOrEmpty(filePath)) return null;
 
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
-            var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
+            var extractSkip = !forceExtract && (mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension));
 
             var refreshOptions = Plugin.MediaInfoApi.GetMediaInfoRefreshOptions();
 
@@ -814,13 +926,13 @@ namespace StrmAssistant.Common
             return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<string> GetStrmMountPath(string strmPath)
+        public async Task<string> GetStrmMountPath(string strmPath, CancellationToken cancellationToken)
         {
-            var path = strmPath.AsMemory();
+            using var mediaMount = await MediaMountCompatibility
+                .MountAsync(_mediaMountManager, strmPath, cancellationToken)
+                .ConfigureAwait(false);
 
-            using var mediaMount = await _mediaMountManager.Mount(path, null, CancellationToken.None);
-            
-            return mediaMount?.MountedPath;
+            return MediaMountCompatibility.GetMountedPath(mediaMount);
         }
 
         public BaseItem[] GetItemsByIds(long[] itemIds)

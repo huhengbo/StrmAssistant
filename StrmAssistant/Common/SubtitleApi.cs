@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
@@ -53,7 +54,9 @@ namespace StrmAssistant.Common
                 {
                     localizationManager, fileSystem, libraryManager
                 });
-                _getExternalSubtitleStreams = subtitleResolverType.GetMethod("GetExternalSubtitleStreams");
+                _getExternalSubtitleStreams =
+                    subtitleResolverType.GetMethod("GetExternalSubtitleStreams") ??
+                    subtitleResolverType.GetMethod("GetExternalTracks");
 
                 var ffProbeSubtitleInfoType = embyProviders.GetType("Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
                 var ffProbeSubtitleInfoConstructor = ffProbeSubtitleInfoType.GetConstructor(new[]
@@ -83,9 +86,26 @@ namespace StrmAssistant.Common
             IDirectoryService directoryService, bool clearCache)
         {
             var namingOptions = _libraryManager.GetNamingOptions();
+            var parameters = _getExternalSubtitleStreams.GetParameters();
 
-            return (List<MediaStream>)_getExternalSubtitleStreams.Invoke(_subtitleResolver,
-                new object[] { item, startIndex, directoryService, namingOptions, clearCache });
+            if (parameters.Length == 6 && parameters.Any(p => p.ParameterType == typeof(LibraryOptions)))
+            {
+                return (List<MediaStream>)_getExternalSubtitleStreams.Invoke(_subtitleResolver,
+                    new object[]
+                    {
+                        item, startIndex, directoryService, _libraryManager.GetLibraryOptions(item), namingOptions,
+                        clearCache
+                    });
+            }
+
+            if (parameters.Length == 5)
+            {
+                return (List<MediaStream>)_getExternalSubtitleStreams.Invoke(_subtitleResolver,
+                    new object[] { item, startIndex, directoryService, namingOptions, clearCache });
+            }
+
+            throw new NotSupportedException($"Unsupported external subtitle resolver signature: " +
+                                            _getExternalSubtitleStreams);
         }
 
         private Task<bool> UpdateExternalSubtitleStream(BaseItem item,
@@ -113,24 +133,19 @@ namespace StrmAssistant.Common
 
         public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService, bool clearCache)
         {
-            var currentExternalSubtitleFiles = _libraryManager.GetExternalSubtitleFiles(item.InternalId);
+            var currentExternalSubtitleFiles = item.GetMediaStreams()
+                .Where(i => i.IsExternal && i.Type == MediaStreamType.Subtitle &&
+                            i.Protocol == MediaProtocol.File && !string.IsNullOrEmpty(i.Path))
+                .Select(i => i.Path)
+                .ToList();
             var currentSet = new HashSet<string>(currentExternalSubtitleFiles, StringComparer.Ordinal);
 
-            try
-            {
-                var newExternalSubtitleFiles = GetExternalSubtitleStreams(item, 0, directoryService, clearCache)
-                    .Select(i => i.Path)
-                    .ToArray();
-                var newSet = new HashSet<string>(newExternalSubtitleFiles, StringComparer.Ordinal);
+            var newExternalSubtitleFiles = GetExternalSubtitleStreams(item, 0, directoryService, clearCache)
+                .Select(i => i.Path)
+                .ToArray();
+            var newSet = new HashSet<string>(newExternalSubtitleFiles, StringComparer.Ordinal);
 
-                return !currentSet.SetEquals(newSet);
-            }
-            catch
-            {
-                // ignored
-            }
-
-            return false;
+            return !currentSet.SetEquals(newSet);
         }
 
         public async Task UpdateExternalSubtitles(BaseItem item, MetadataRefreshOptions refreshOptions, bool clearCache,
