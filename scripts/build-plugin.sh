@@ -57,7 +57,8 @@ test -f "$resource_core_link"
 NUGET_PACKAGES="$nuget_packages" DOTNET_CLI_HOME="$dotnet_cli_home" \
   "$dotnet_cmd" build "$solution" --configuration Release --no-restore \
   -p:TaskAssembly="$resource_embedder_task" \
-  -p:ILRepack="$dotnet_cmd $ilrepack"
+  -p:ILRepack="$dotnet_cmd $ilrepack" \
+  -p:PluginOutputPath="$generated_appdata/Emby-Server/programdata/plugins/StrmAssistantLite.dll"
 
 NUGET_PACKAGES="$nuget_packages" DOTNET_CLI_HOME="$dotnet_cli_home" \
   perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' 60 \

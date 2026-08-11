@@ -6,6 +6,7 @@
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
+    <PluginOutputPath Condition="'$(PluginOutputPath)' == ''">%AppData%\Emby-Server\programdata\plugins\$(TargetFileName)</PluginOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
@@ -50,6 +51,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(TargetDir)ChineseConverter.dll /lib:$(TargetDir)" />
+    <Exec Command="$(ILRepack) /out:&quot;$(PluginOutputPath)&quot; $(TargetPath) $(TargetDir)ChineseConverter.dll /lib:$(TargetDir)" />
   </Target>
 </Project>
