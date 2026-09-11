@@ -131,11 +131,7 @@ namespace StrmAssistant.Common
             if (_currentMasterMaxConcurrentCount != maxConcurrentCount)
             {
                 _currentMasterMaxConcurrentCount = maxConcurrentCount;
-
-                var newMasterSemaphore = new SemaphoreSlim(maxConcurrentCount);
-                var oldMasterSemaphore = MasterSemaphore;
-                MasterSemaphore = newMasterSemaphore;
-                oldMasterSemaphore.Dispose();
+                MasterSemaphore = new SemaphoreSlim(maxConcurrentCount);
             }
         }
 
@@ -144,11 +140,7 @@ namespace StrmAssistant.Common
             if (_currentTier2MaxConcurrentCount != maxConcurrentCount)
             {
                 _currentTier2MaxConcurrentCount = maxConcurrentCount;
-
-                var newTier2Semaphore = new SemaphoreSlim(maxConcurrentCount);
-                var oldTier2Semaphore = Tier2Semaphore;
-                Tier2Semaphore = newTier2Semaphore;
-                oldTier2Semaphore.Dispose();
+                Tier2Semaphore = new SemaphoreSlim(maxConcurrentCount);
             }
         }
 
@@ -227,10 +219,11 @@ namespace StrmAssistant.Common
                         foreach (var item in mediaInfoItems)
                         {
                             var taskItem = item;
+                            var masterSemaphore = MasterSemaphore;
 
                             try
                             {
-                                await MasterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                await masterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -239,7 +232,7 @@ namespace StrmAssistant.Common
 
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                MasterSemaphore.Release();
+                                masterSemaphore.Release();
                                 Logger.Info("MediaInfoExtract - Item Cancelled: " + taskItem.Name + " - " +
                                             taskItem.Path);
                                 break;
@@ -305,7 +298,7 @@ namespace StrmAssistant.Common
                                         }
                                     }
 
-                                    MasterSemaphore.Release();
+                                    masterSemaphore.Release();
                                 }
                             }, cancellationToken);
                             tasks.Add(task);
@@ -439,10 +432,11 @@ namespace StrmAssistant.Common
                             foreach (var episode in season)
                             {
                                 var taskItem = episode;
+                                var masterSemaphore = MasterSemaphore;
 
                                 try
                                 {
-                                    await MasterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                    await masterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                                 }
                                 catch
                                 {
@@ -451,7 +445,7 @@ namespace StrmAssistant.Common
 
                                 if (cancellationToken.IsCancellationRequested)
                                 {
-                                    MasterSemaphore.Release();
+                                    masterSemaphore.Release();
                                     break;
                                 }
 
@@ -525,7 +519,7 @@ namespace StrmAssistant.Common
                                             }
                                         }
 
-                                        MasterSemaphore.Release();
+                                        masterSemaphore.Release();
                                     }
                                 }, cancellationToken);
                                 episodeTasks.Add(task);
@@ -550,10 +544,11 @@ namespace StrmAssistant.Common
                                 var seasonTask = Task.Run(async () =>
                                 {
                                     await Task.WhenAll(episodeTasks).ConfigureAwait(false);
+                                    var tier2Semaphore = Tier2Semaphore;
 
                                     try
                                     {
-                                        await Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                        await tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                                     }
                                     catch
                                     {
@@ -562,7 +557,7 @@ namespace StrmAssistant.Common
 
                                     if (cancellationToken.IsCancellationRequested)
                                     {
-                                        Tier2Semaphore.Release();
+                                        tier2Semaphore.Release();
                                         Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name +
                                                     " - " + taskSeason.Path);
                                         return;
@@ -588,7 +583,7 @@ namespace StrmAssistant.Common
                                     }
                                     finally
                                     {
-                                        Tier2Semaphore.Release();
+                                        tier2Semaphore.Release();
                                     }
                                 }, cancellationToken);
                                 seasonTasks.Add(seasonTask);
@@ -731,10 +726,11 @@ namespace StrmAssistant.Common
                         foreach (var item in itemsToRefresh)
                         {
                             var taskItem = item;
+                            var tier2Semaphore = Tier2Semaphore;
 
                             try
                             {
-                                await Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                await tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -743,7 +739,7 @@ namespace StrmAssistant.Common
 
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                Tier2Semaphore.Release();
+                                tier2Semaphore.Release();
                                 Logger.Info("EpisodeRefresh - Item Cancelled: " + taskItem.Name + " - " +
                                             taskItem.Path);
                                 break;
@@ -755,7 +751,7 @@ namespace StrmAssistant.Common
                                 {
                                     await Task.Delay(
                                             Random.Next(0,
-                                                Math.Max(0, tier2MaxConcurrentCount - Tier2Semaphore.CurrentCount) *
+                                                Math.Max(0, tier2MaxConcurrentCount - tier2Semaphore.CurrentCount) *
                                                 MetadataApi.RequestIntervalMs), cancellationToken)
                                         .ConfigureAwait(false);
 
@@ -786,7 +782,7 @@ namespace StrmAssistant.Common
                                 }
                                 finally
                                 {
-                                    Tier2Semaphore.Release();
+                                    tier2Semaphore.Release();
                                 }
                             }, cancellationToken);
                             tasks.Add(task);
@@ -817,6 +813,7 @@ namespace StrmAssistant.Common
         public static void Dispose()
         {
             MediaInfoTokenSource?.Cancel();
+            IntroSkipTokenSource?.Cancel();
             FingerprintTokenSource?.Cancel();
             EpisodeRefreshTokenSource?.Cancel();
         }

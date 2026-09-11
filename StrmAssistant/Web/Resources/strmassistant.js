@@ -1,5 +1,13 @@
 ﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm', 'dialog'], function (connectionManager, globalize, loading, toast, confirm, dialog) {
 
+    function showRequestError(error) {
+        const locale = globalize.getCurrentLocale().toLowerCase();
+        const fallbackMessage = (locale === 'zh-cn') ? '\u64cd\u4f5c\u5931\u8d25' :
+            (['zh-hk', 'zh-tw'].includes(locale) ? '\u64cd\u4f5c\u5931\u6557' : 'Operation Failed');
+        const detail = error && (error.statusText || error.message);
+        toast(detail ? fallbackMessage + ': ' + detail : fallbackMessage);
+    }
+
     return {
         copy: function (libraryId) {
             loading.show();
@@ -12,8 +20,7 @@
                 url: copyApi,
                 data: JSON.stringify({ Id: libraryId }),
                 contentType: "application/json"
-            }).finally(() => {
-                loading.hide();
+            }).then(() => {
                 const locale = globalize.getCurrentLocale().toLowerCase();
                 const confirmMessage = (locale === 'zh-cn') ? '\u590d\u5236\u5a92\u4f53\u5e93\u6210\u529f' : 
                     (['zh-hk', 'zh-tw'].includes(locale) ? '\u8907\u88fd\u5a92\u9ad4\u5eab\u6210\u529f' : 'Copy Library Success');
@@ -22,6 +29,8 @@
                 if (itemsContainer) {
                     itemsContainer.notifyRefreshNeeded(true);
                 }
+            }).catch(showRequestError).finally(() => {
+                loading.hide();
             });
         },
 
@@ -43,8 +52,7 @@
                     url: deleteApi + "?refreshLibrary=false&id=" + libraryId,
                     data: {},
                     contentType: "application/json"
-                }).finally(() => {
-                    loading.hide();
+                }).then(() => {
                     const locale = globalize.getCurrentLocale().toLowerCase();
                     const confirmMessage = (locale === 'zh-cn') ? '\u5408\u96c6\u5220\u9664\u6210\u529f' : 
                         (['zh-hk', 'zh-tw'].includes(locale) ? '\u5408\u96C6\u5236\u9662\u6210\u529F' : 'Delete Collections Success');
@@ -53,6 +61,8 @@
                     if (itemsContainer) {
                         itemsContainer.notifyRefreshNeeded(true);
                     }
+                }).catch(showRequestError).finally(() => {
+                    loading.hide();
                 });
             });
         },
@@ -76,10 +86,11 @@
                 url: `${scanApi}?${queryString}`,
                 data: {},
                 contentType: "application/json"
-            }).finally(() => {
-                loading.hide();
+            }).then(() => {
                 const confirmMessage = globalize.translate('ScanningLibraryFilesDots');
                 toast(confirmMessage);
+            }).catch(showRequestError).finally(() => {
+                loading.hide();
             });
         },
 
@@ -140,12 +151,13 @@
                     url: deleteApi,
                     data: {},
                     contentType: "application/json"
-                }).finally(() => {
-                    loading.hide();
+                }).then(() => {
                     const locale = globalize.getCurrentLocale().toLowerCase();
                     const confirmMessage = (locale === 'zh-cn') ? '\u5220\u9664\u7248\u672C\u6210\u529F' : 
                         (['zh-hk', 'zh-tw'].includes(locale) ? '\u524A\u9664\u7248\u672C\u6210\u529F' : 'Delete Version Success');
                     toast(confirmMessage);
+                }).catch(showRequestError).finally(() => {
+                    loading.hide();
                 });
             }
         },
@@ -185,11 +197,12 @@
                     url: clearIntroApi,
                     data: {},
                     contentType: "application/json"
-                }).finally(() => {
-                    loading.hide();
+                }).then(() => {
                     const confirmMessage = (locale === 'zh-cn') ? commandName + '\u6210\u529F' : 
                         (['zh-hk', 'zh-tw'].includes(locale) ? commandName + '\u6210\u529F' : commandName + ' Success');
                     toast(confirmMessage);
+                }).catch(showRequestError).finally(() => {
+                    loading.hide();
                 });
             });
         }

@@ -93,7 +93,7 @@ namespace StrmAssistant.Web.Service
 
                     try
                     {
-                        _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
+                        _fileSystem.DeleteDirectory(deleteItem.GetInternalMetadataPath(), true, true);
                     }
                     catch
                     {
