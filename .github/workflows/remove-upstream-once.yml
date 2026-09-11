@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - release/v2026.9.12.0-remove-upstream
+    paths:
+      - .github/workflows/remove-upstream-once.yml
 
 permissions:
   contents: write
 
 jobs:
   cleanup:
-    if: github.event.head_commit.message == 'chore: prepare upstream cleanup'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
