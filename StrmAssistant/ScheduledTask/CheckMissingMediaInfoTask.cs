@@ -236,9 +236,11 @@ namespace StrmAssistant.ScheduledTask
 
         public string Key => "CheckMissingMediaInfoTask";
 
-        public string Description => "检查已有 STRM 文件是否缺少 MediaInfo JSON，并逐一补齐。";
+        public string Description => TaskResources.GetString("CheckMissingMediaInfoTask_Description",
+            Plugin.Instance.DefaultUICulture);
 
-        public string Name => "检查补漏缺失媒体信息";
+        public string Name => TaskResources.GetString("CheckMissingMediaInfoTask_Name",
+            Plugin.Instance.DefaultUICulture);
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {

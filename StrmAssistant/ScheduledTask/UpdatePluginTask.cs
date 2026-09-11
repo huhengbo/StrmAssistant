@@ -49,13 +49,13 @@ namespace StrmAssistant.ScheduledTask
 
         public string Key => "UpdatePluginTask";
 
-        public string Name => "Update Plugin";
+        public string Name => Resources.ResourceManager.GetString("UpdatePluginTask_Name_Update_Plugin",
+            Plugin.Instance.DefaultUICulture);
 
         public string Description => Resources.ResourceManager.GetString(
             "UpdatePluginTask_Description_Updates_plugin_to_the_latest_version", Plugin.Instance.DefaultUICulture);
 
-        public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",
-            Plugin.Instance.DefaultUICulture);
+        public string Category => Plugin.DisplayName;
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
@@ -110,8 +110,6 @@ namespace StrmAssistant.ScheduledTask
                     var githubProxy = Plugin.Instance.GetPluginOptions().AboutOptions.GitHubProxy;
                     var downloadUrl = PluginUpdateSecurity.BuildDownloadUrl(url, githubProxy);
 
-                    // Public release assets do not require authentication. In particular, never
-                    // attach the GitHub token when a third-party proxy is configured.
                     await using var responseStream = await _httpClient.Get(new HttpRequestOptions
                     {
                         Url = downloadUrl,
@@ -144,7 +142,7 @@ namespace StrmAssistant.ScheduledTask
                 else
                 {
                     _ = Plugin.NotificationApi.SendMessageToAdmins(
-                        $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.No_Update_Message}", 1000);
+                        $"[{Plugin.DisplayName}] {Resources.No_Update_Message}", 1000);
                     _logger.Info("No need to update");
                 }
             }
@@ -160,7 +158,7 @@ namespace StrmAssistant.ScheduledTask
                 });
 
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
-                    $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.Update_Failed_Message}", 1000);
+                    $"[{Plugin.DisplayName}] {Resources.Update_Failed_Message}", 1000);
                 _logger.Error("Update failed: {0}", e.Message);
                 _logger.Debug(e.StackTrace);
             }
