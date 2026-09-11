@@ -16,7 +16,7 @@
 - Added a scheduled gap-check task that creates missing media-information JSON files for existing STRM items.
 - Retained catch-up processing so newly added STRM items can automatically enter the media-information extraction queue.
 - Updates are sourced from this repository's Releases and protected by download integrity validation and rollback safeguards.
-- Added a reproducible Linux/macOS build workflow and automated compatibility tests.
+- Provides one reproducible build entry point for Windows, macOS, and Linux plus compatibility tests.
 
 ## Verified Environment
 
@@ -46,21 +46,21 @@ The plugin updater reads releases from `huhengbo/StrmAssistant`. A custom GitHub
 
 ## Build
 
-.NET SDK 8 is currently required. Run:
+Python 3.10+ and .NET SDK 8 are required. Windows, macOS, and Linux all use the same entry point:
 
 ```bash
-./scripts/build-plugin.sh
+python scripts/build_plugin.py
 ```
 
-If `dotnet` is not available through `PATH`, specify it explicitly:
+If `dotnet` is not available through `PATH`:
 
 ```bash
-DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
+python scripts/build_plugin.py --dotnet /path/to/dotnet
 ```
 
-The script also runs compatibility tests and writes the merged plugin to `artifacts/StrmAssistantLite.dll`.
+Unix environments may continue to use `./scripts/build-plugin.sh` as a compatibility wrapper. The build runs from a disposable copy under the system temporary directory so the legacy `Resource.Embedder` path workaround never writes backslash-named files or fake `%AppData%` folders into the working tree. Only the successful result is copied to `artifacts/StrmAssistantLite.dll`.
 
-> A unified Windows / macOS / Linux build path is still being cleaned up; see the repository Issues for progress.
+GitHub Actions executes this same build and test flow on Windows, macOS, and Linux.
 
 ## Upstream, Original Work And License
 
