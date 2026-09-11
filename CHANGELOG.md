@@ -1,36 +1,162 @@
-# Changelog
+# 更新日志
 
-All maintained-fork releases are documented here.
+这里记录 `Strm Assistant Enhanced` 各正式版本的用户可见变更。
 
-## Versioning
+## 发布说明模板
 
-`Strm Assistant Enhanced` uses calendar versions in the form `YYYY.M.D.REVISION`.
+后续发布新版本时，复制下面的结构并将标题改为实际版本号，例如 `## 2026.9.12.0`。GitHub Release 会自动截取对应版本章节作为中文发布说明。
 
-- `YYYY.M.D` identifies the release date.
-- `REVISION` starts at `0` and increments for additional releases on the same day.
-- Git tags use the same value prefixed with `v`, for example `v2026.9.11.0`.
-- This deliberately separates the maintained fork from the upstream `2.0.0.x` version sequence while remaining compatible with `System.Version` used by the in-plugin updater.
+### ✨ 主要更新
+
+- **功能名称**
+  - 简要说明用户能获得什么。
+
+### 🐛 问题修复
+
+- 修复具体问题。
+
+### ⚙️ 优化调整
+
+- 优化性能、构建、日志或兼容性。
+
+### 🔒 安全与稳定性
+
+- 有安全相关改动时填写；没有可删除本章节。
+
+### 🌐 多语言
+
+- 有本地化改动时填写；没有可删除本章节。
+
+### 📦 升级说明
+
+- 说明是否可以直接覆盖升级、是否需要重启、是否涉及配置迁移。
+
+### ✅ 兼容性
+
+- 说明重点兼容和已验证的 Emby Server 版本。
+
+### 🔐 文件校验
+
+- Release 同时提供 `StrmAssistantLite.dll.sha256`，用于校验下载文件完整性。
+
+### 📌 项目说明
+
+- 当前维护：`huhengbo/StrmAssistant`
+- 上游项目：`sjtuross/StrmAssistant`
+- License：GPL-3.0
+
+## 版本规则
+
+`Strm Assistant Enhanced` 使用 `YYYY.M.D.REVISION` 格式的日历版本号。
+
+- `YYYY.M.D`：发布日期。
+- `REVISION`：同一天的第几次正式发布，从 `0` 开始递增。
+- Git Tag 使用 `v` 前缀，例如 `v2026.9.11.0`。
+- 该规则用于与上游 `2.0.0.x` 版本序列区分，同时继续兼容插件内部的 `System.Version` 比较逻辑。
 
 ## 2026.9.11.0
 
-Upstream baseline: `sjtuross/StrmAssistant` `v2.0.0.30`.
+> 上游基线：`sjtuross/StrmAssistant v2.0.0.30`。这是 `Strm Assistant Enhanced` 独立维护后的首个正式版本。
 
-### Added
+### ✨ 主要更新
 
-- Emby 4.9 STRM mount/path compatibility.
-- STRM media-information JSON gap-check task.
-- Compatibility tests for legacy/current media mount contracts.
-- Fork-specific branding and plugin logo.
-- Updater payload validation against GitHub Release SHA-256 digests.
-- Updater backup/rollback protection and GitHub proxy token isolation.
+- **完成二开品牌收口**
+  - 插件显示名称统一为 `Strm Assistant Enhanced`。
+  - 更换独立 Logo。
+  - 项目、文档、免责声明及更新地址统一切换到当前维护仓库。
+  - 保留上游项目 Credits 与 GPL-3.0 授权信息。
 
-### Changed
+- **增强 Emby 4.9 兼容性**
+  - 优化 STRM 媒体挂载与路径解析。
+  - 适配新版媒体源读取接口。
+  - 改进外挂字幕扫描兼容性。
+  - Emby 私有 API 反射调用改为按完整参数类型与返回类型精确匹配，降低版本升级后的误调用风险。
 
-- Plugin display identity is now `Strm Assistant Enhanced`.
-- Project, documentation, disclaimer, and update links point to `huhengbo/StrmAssistant`.
-- Upstream attribution remains available explicitly through README and the plugin About page.
+- **新增 STRM MediaInfo 缺失补漏任务**
+  - 自动检查已有 STRM 项目是否缺失 MediaInfo JSON。
+  - 支持自动提取并补齐缺失信息。
+  - 大媒体库改为分页扫描，每批 200 条。
+  - 优化任务日志和取消响应。
 
-### Compatibility
+### 🐛 问题修复
 
-- Plugin GUID remains `63c322b7-a371-41a3-b11f-04f8418b37d8` to preserve upgrade/configuration compatibility.
-- Output assembly remains `StrmAssistantLite.dll`.
+- 修复新版 Emby 中部分 STRM 媒体信息提取失败的问题。
+- 修复媒体信息 JSON 写入或删除时可能触发重复媒体库监听的问题。
+- 修复新版 Emby 媒体源与外挂字幕相关 API 变化带来的兼容问题。
+- 修复二开版本中上游 Logo、仓库链接、Wiki、免责声明等品牌残留。
+
+### ⚙️ 优化调整
+
+- Windows、macOS、Linux 统一使用：
+
+  `python scripts/build_plugin.py`
+
+- GitHub Actions 增加 Windows / macOS / Linux 三平台自动构建与测试。
+- 建立独立版本体系 `YYYY.M.D.REVISION`。
+- 建立自动 Release 发布流程。
+- Release 自动生成：
+  - `StrmAssistantLite.dll`
+  - `StrmAssistantLite.dll.sha256`
+
+### 🔒 安全与稳定性
+
+- GitHub Token 不再发送给第三方 GitHub Proxy。
+- 插件下载后会检查 PE/DLL 基本格式。
+- 支持校验 GitHub Release 提供的 SHA-256 digest。
+- 自动更新前备份现有 DLL。
+- 更新失败时恢复原插件文件，降低自动更新导致插件损坏的风险。
+
+### 🌐 多语言
+
+- 更新任务名称和描述改为资源化管理。
+- STRM 媒体信息补漏任务支持：
+  - English
+  - 简体中文
+  - 繁體中文
+- 插件品牌名称统一使用 `Strm Assistant Enhanced`。
+
+### 📦 升级说明
+
+已有 StrmAssistant 用户可以直接覆盖升级 `StrmAssistantLite.dll`。
+
+插件 GUID 保持不变：
+
+`63c322b7-a371-41a3-b11f-04f8418b37d8`
+
+因此原有插件配置可以继续保留。替换 DLL 后重启 Emby Server 即可。
+
+### ✅ 兼容性
+
+当前重点维护 Emby Server 4.9.x。
+
+已重点验证：
+
+- 插件加载与配置页。
+- MediaInfo 提取。
+- MediaInfo JSON 持久化。
+- STRM 媒体路径与挂载。
+- MediaInfo 缺失补漏。
+- 外挂字幕扫描。
+- 新增 STRM 自动追更。
+
+其他 Emby 版本建议升级前备份原插件与配置。
+
+### 🔐 文件校验
+
+本版本同时提供：
+
+- `StrmAssistantLite.dll`
+- `StrmAssistantLite.dll.sha256`
+
+DLL SHA-256：
+
+`29574e6f07074811e392391a16818f7917d4a1426a49a4cd49788a7da2221a68`
+
+### 📌 项目说明
+
+本项目基于 `sjtuross/StrmAssistant` 二次开发并独立维护。
+
+- 当前维护：`huhengbo/StrmAssistant`
+- 上游项目：`sjtuross/StrmAssistant`
+- 更早来源：`faush01/StrmExtract`
+- License：GPL-3.0
