@@ -6,7 +6,10 @@
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
-    <PluginOutputPath Condition="'$(PluginOutputPath)' == ''">%AppData%\Emby-Server\programdata\plugins\$(TargetFileName)</PluginOutputPath>
+    <PluginOutputPath Condition="'$(PluginOutputPath)' == ''">$(MSBuildProjectDirectory)/../artifacts/$(AssemblyName).dll</PluginOutputPath>
+    <TaskAssembly>$(NuGetPackageRoot)resource.embedder/2.2.0/tasks/netstandard2.0/ResourceEmbedder.MsBuild.dll</TaskAssembly>
+    <ILRepackTargetsFile>$(MSBuildProjectDirectory)/ILRepack.targets</ILRepackTargetsFile>
+    <ClearOutputDirectory>False</ClearOutputDirectory>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
@@ -18,9 +21,8 @@
     <EmbeddedResource Include="Web\Resources\strmassistant.js" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CHTCHSConv" Version="1.0.0">
-    </PackageReference>
-    <PackageReference Include="ILRepack" Version="2.0.42">
+    <PackageReference Include="CHTCHSConv" Version="1.0.0" />
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.46">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -50,7 +52,4 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:&quot;$(PluginOutputPath)&quot; $(TargetPath) $(TargetDir)ChineseConverter.dll /lib:$(TargetDir)" />
-  </Target>
 </Project>
