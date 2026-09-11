@@ -1,31 +1,29 @@
-# Strm Assistant Emby 4.9 Compatibility Build
+# Strm Assistant Enhanced
 
-![logo](StrmAssistant/Properties/thumb.png "logo")
+![Strm Assistant Enhanced](StrmAssistant/Properties/thumb.png "Strm Assistant Enhanced")
 
 [[中文]](README.md)
 
-This is a personal compatibility build based on [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) `v2.0.0.30`.
+`Strm Assistant Enhanced` is the independently maintained derivative in this repository. It currently evolves from [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) `v2.0.0.30`, with a focus on newer Emby Server compatibility, STRM media-information handling, and stability improvements.
 
-This repository preserves the upstream features, project structure, and GPL-3.0 license while adding compatibility for newer Emby Server releases and media-information gap recovery for STRM libraries. Refer to the upstream repository for the complete feature documentation and update history.
+> This is not an official upstream release. The existing plugin GUID is intentionally preserved for upgrade compatibility so current StrmAssistant installations can keep their configuration, while the logo, maintenance links, update source, and release information are maintained by this repository.
 
 ## Changes In This Build
 
 - Adapted STRM mounting and path resolution for Emby 4.9, fixing media-information extraction on the newer API.
-- Adapted media-source retrieval and external-subtitle scanning for the newer Emby API.
+- Adapted media-source retrieval and external-subtitle scanning for newer Emby APIs.
 - Prevented media-information JSON writes and deletions from triggering duplicate library-monitor events.
 - Added a scheduled gap-check task that creates missing media-information JSON files for existing STRM items.
 - Retained catch-up processing so newly added STRM items can automatically enter the media-information extraction queue.
+- Updates are sourced from this repository's Releases and protected by download integrity validation and rollback safeguards.
 - Added a reproducible Linux/macOS build workflow and automated compatibility tests.
 
 ## Verified Environment
 
-This compatibility build has been validated in an isolated Emby Server `4.9.3.0` container.
-
-Verified areas include:
+The current build has been validated in an isolated Emby Server `4.9.3.0` container, including:
 
 - Plugin loading and configuration page
-- Extract MediaInfo
-- Persist MediaInfo
+- Extract MediaInfo / Persist MediaInfo
 - STRM mounting and media probing
 - Missing media-information JSON gap check
 - External-subtitle scanning compatibility
@@ -37,14 +35,18 @@ See [Emby 4.9 compatibility validation](docs/emby-4.9-compatibility-validation.m
 
 ## Installation
 
-1. Download `StrmAssistantLite.dll` from Releases.
+1. Download `StrmAssistantLite.dll` from this repository's Releases.
 2. Copy it into the Emby Server `plugins` directory.
 3. Restart Emby Server.
-4. Confirm that `Strm Assistant` is loaded on the Emby plugins page, then configure the required features.
+4. Confirm that `Strm Assistant Enhanced` is loaded on the Emby plugins page, then configure the required features.
+
+## Update Security
+
+The plugin updater reads releases from `huhengbo/StrmAssistant`. A custom GitHub download proxy never receives the configured GitHub token. After download, the plugin validates the release asset SHA-256 when GitHub provides a digest and keeps a `.bak` copy before replacing the active DLL. A failed download, validation, or replacement should therefore leave a recoverable existing plugin.
 
 ## Build
 
-.NET SDK 8 is required. Run the reproducible build script:
+.NET SDK 8 is currently required. Run:
 
 ```bash
 ./scripts/build-plugin.sh
@@ -56,15 +58,20 @@ If `dotnet` is not available through `PATH`, specify it explicitly:
 DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
 ```
 
-The script also runs the compatibility tests and writes the merged plugin to `artifacts/StrmAssistantLite.dll`.
+The script also runs compatibility tests and writes the merged plugin to `artifacts/StrmAssistantLite.dll`.
 
-## Original Work And License
+> A unified Windows / macOS / Linux build path is still being cleaned up; see the repository Issues for progress.
 
-The original work of Strm Assistant belongs to the upstream author and contributors. This repository is a personal derivative and compatibility build. It does not claim ownership of the upstream project's original work and does not represent or replace an official upstream release.
+## Upstream, Original Work And License
 
-This project remains available under the upstream [GNU General Public License v3.0](LICENSE). For the complete feature set, licensing details, usage documentation, and upstream support, visit:
+The original Strm Assistant work belongs to the upstream author and contributors. This repository is a derivative compatibility and maintenance build; it does not claim ownership of the upstream project's original work and does not represent or replace an official upstream release.
 
-[https://github.com/sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
+- Maintained repository: `huhengbo/StrmAssistant`
+- Upstream: [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
+- Earlier origin: `faush01/StrmExtract`
+- License: [GNU General Public License v3.0](LICENSE)
+
+The new logo in this fork was created specifically to distinguish this maintained derivative. Upstream copyright attribution and GPL-3.0 obligations remain unchanged.
 
 ## Disclaimer
 
