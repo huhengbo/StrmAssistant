@@ -63,16 +63,25 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    _getStaticMediaSources = mediaSourceManager.GetType()
-                        .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                        .Where(m => m.Name == "GetStaticMediaSources")
-                        .OrderByDescending(m => m.GetParameters().Length)
-                        .FirstOrDefault(m =>
+                    _getStaticMediaSources = ReflectionMethodResolver.FindExactMethod(
+                        mediaSourceManager.GetType(),
+                        new[] { "GetStaticMediaSources" },
+                        typeof(List<MediaSourceInfo>),
+                        new[]
                         {
-                            var parameters = m.GetParameters();
-                            return new[] { 10, 8, 7 }.Contains(parameters.Length) &&
-                                   parameters[0].ParameterType == typeof(BaseItem) &&
-                                   parameters.Any(p => p.ParameterType == typeof(LibraryOptions));
+                            typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(bool),
+                            typeof(BaseItem[]), typeof(LibraryOptions), typeof(DeviceProfile), typeof(User),
+                            typeof(CancellationToken)
+                        },
+                        new[]
+                        {
+                            typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(BaseItem[]),
+                            typeof(LibraryOptions), typeof(DeviceProfile), typeof(User)
+                        },
+                        new[]
+                        {
+                            typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(LibraryOptions),
+                            typeof(DeviceProfile), typeof(User)
                         });
                     _fallbackApproach = true;
                 }
@@ -87,7 +96,7 @@ namespace StrmAssistant.Common
 
                 if (_getStaticMediaSources is null)
                 {
-                    _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
+                    _logger.Warn($"{nameof(MediaInfoApi)} Init Failed - no supported exact GetStaticMediaSources contract found");
                 }
             }
 
@@ -106,7 +115,7 @@ namespace StrmAssistant.Common
             if (_getStaticMediaSources is null)
             {
                 throw new MissingMethodException(_mediaSourceManager.GetType().FullName,
-                    "Supported GetStaticMediaSources overload with 10, 8, or 7 parameters");
+                    "Supported exact GetStaticMediaSources overload (10, 8, or 7 parameter contract)");
             }
 
             var collectionFolders = _libraryManager.GetCollectionFolders(item).Cast<BaseItem>().ToArray();
