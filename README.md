@@ -16,7 +16,7 @@
 - 新增 STRM 媒体信息 JSON 缺失检查与补漏任务，可为已入库但缺少持久化媒体信息的 STRM 逐项补齐。
 - 保留追更模式，可在新增 STRM 入库后自动进入媒体信息提取队列。
 - 插件自更新固定从本仓库 Releases 获取，并对下载文件进行完整性校验与失败回滚保护。
-- 补充 Linux/macOS 环境下的可复现构建流程和兼容性自动测试。
+- 构建入口统一为跨平台 Python 脚本，并在 Windows、macOS、Linux CI 矩阵中验证。
 
 ## 验证环境
 
@@ -46,21 +46,30 @@
 
 ## 构建
 
-仓库当前提供可重复执行的构建脚本，需要 .NET SDK 8：
+需要 .NET SDK 8 与 Python 3.9+。Windows、macOS、Linux 使用同一个入口：
 
 ```bash
-./scripts/build-plugin.sh
+python scripts/build_plugin.py
 ```
 
-如果 `dotnet` 不在 `PATH` 中，可显式指定：
+Windows 如果习惯使用 Python Launcher，也可以执行：
+
+```powershell
+py scripts/build_plugin.py
+```
+
+如果 `dotnet` 不在 `PATH` 中，可以通过环境变量或参数指定：
 
 ```bash
-DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
+DOTNET_CMD=/path/to/dotnet python scripts/build_plugin.py
+python scripts/build_plugin.py --dotnet /path/to/dotnet
 ```
 
-构建会同时运行兼容性测试，产物位于 `artifacts/StrmAssistantLite.dll`。
+脚本会依次 restore、Release build、运行兼容性测试，并输出 `artifacts/StrmAssistantLite.dll` 及 SHA-256。普通构建不会写入 Emby 的真实插件目录；安装/替换插件是独立动作。
 
-> 跨 Windows / macOS / Linux 的统一构建链路仍在继续收口，详见仓库 Issues。
+## 版本与发布
+
+维护版本使用 `YYYY.M.D.REVISION`，例如 `2026.9.11.0`。对应 tag 为 `v2026.9.11.0`。完整变化记录见 [CHANGELOG.md](CHANGELOG.md)。tag 发布工作流会校验版本号、构建测试、生成 checksum 并创建 GitHub Release。
 
 ## 上游、原创与授权
 
