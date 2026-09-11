@@ -2,6 +2,8 @@ name: Release Plugin
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -16,23 +18,32 @@ permissions:
 
 jobs:
   release:
+    if: >-
+      github.event_name != 'push' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      startsWith(github.event.head_commit.message, 'release:')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Resolve release tag
         id: release_tag
         shell: bash
         run: |
+          set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            tag='${{ inputs.tag }}'
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF_NAME}"
           else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            version="$(sed -n 's:.*<AssemblyVersion>\(.*\)</AssemblyVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
+            tag="v${version}"
           fi
-
-      - name: Checkout tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.release_tag.outputs.tag }}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -83,6 +94,7 @@ jobs:
             gh release create "$RELEASE_TAG" \
               artifacts/StrmAssistantLite.dll \
               artifacts/StrmAssistantLite.dll.sha256 \
+              --target "$GITHUB_SHA" \
               --title "Strm Assistant Enhanced $RELEASE_TAG" \
               --generate-notes
           fi
