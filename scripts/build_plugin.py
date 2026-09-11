@@ -10,10 +10,25 @@ from pathlib import Path
 import subprocess
 import sys
 
+RESOURCE_EMBEDDER_VERSION = "2.2.0"
 
-def run(command: list[str], *, cwd: Path, timeout: int | None = None) -> None:
+
+def run(
+    command: list[str],
+    *,
+    cwd: Path,
+    timeout: int | None = None,
+    capture_output: bool = False,
+) -> subprocess.CompletedProcess[str]:
     print("+", " ".join(command), flush=True)
-    subprocess.run(command, cwd=cwd, check=True, timeout=timeout)
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        check=True,
+        timeout=timeout,
+        capture_output=capture_output,
+        text=True,
+    )
 
 
 def sha256(path: Path) -> str:
@@ -22,6 +37,52 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def nuget_global_packages(dotnet: str, repo_root: Path) -> Path:
+    result = run(
+        [dotnet, "nuget", "locals", "global-packages", "--list"],
+        cwd=repo_root,
+        capture_output=True,
+    )
+    line = next((item for item in result.stdout.splitlines() if ":" in item), "")
+    if not line:
+        raise RuntimeError("Unable to determine the NuGet global-packages directory")
+    return Path(line.split(":", 1)[1].strip()).expanduser().resolve()
+
+
+def prepare_resource_embedder_compat(dotnet: str, repo_root: Path) -> Path | None:
+    """Work around Resource.Embedder 2.2.0's Unix backslash companion-path lookup.
+
+    Resource.Embedder itself is kept because it preserves the current single-DLL satellite
+    resource behavior. The temporary compatibility link is required only on Unix-like hosts
+    and is removed before the build command exits.
+    """
+
+    if os.name == "nt":
+        return None
+
+    package_root = nuget_global_packages(dotnet, repo_root)
+    core = (
+        package_root
+        / "resource.embedder"
+        / RESOURCE_EMBEDDER_VERSION
+        / "tasks"
+        / "netstandard2.0"
+        / "ResourceEmbedder.Core.dll"
+    )
+    if not core.is_file():
+        raise RuntimeError(f"Resource.Embedder companion assembly not found: {core}")
+
+    project_dir = repo_root / "StrmAssistant"
+    literal_windows_name = str(core).lstrip("/").replace("/", "\\")
+    compat_link = project_dir / literal_windows_name
+
+    if compat_link.exists() or compat_link.is_symlink():
+        raise RuntimeError(f"Refusing to replace pre-existing Resource.Embedder compatibility path: {compat_link}")
+
+    compat_link.symlink_to(core)
+    return compat_link
 
 
 def main() -> int:
@@ -41,25 +102,31 @@ def main() -> int:
         artifact.unlink()
 
     run([args.dotnet, "restore", str(solution)], cwd=repo_root)
-    run(
-        [args.dotnet, "build", str(solution), "--configuration", args.configuration, "--no-restore"],
-        cwd=repo_root,
-    )
+    compat_link = prepare_resource_embedder_compat(args.dotnet, repo_root)
 
-    if not args.skip_tests:
+    try:
         run(
-            [
-                args.dotnet,
-                "test",
-                str(solution),
-                "--configuration",
-                args.configuration,
-                "--no-restore",
-                "--no-build",
-            ],
+            [args.dotnet, "build", str(solution), "--configuration", args.configuration, "--no-restore"],
             cwd=repo_root,
-            timeout=args.test_timeout,
         )
+
+        if not args.skip_tests:
+            run(
+                [
+                    args.dotnet,
+                    "test",
+                    str(solution),
+                    "--configuration",
+                    args.configuration,
+                    "--no-restore",
+                    "--no-build",
+                ],
+                cwd=repo_root,
+                timeout=args.test_timeout,
+            )
+    finally:
+        if compat_link is not None and compat_link.is_symlink():
+            compat_link.unlink()
 
     if not artifact.is_file() or artifact.stat().st_size == 0:
         raise RuntimeError(f"Plugin artifact was not produced: {artifact}")
