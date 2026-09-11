@@ -16,7 +16,7 @@
 - Added a scheduled gap-check task that creates missing media-information JSON files for existing STRM items.
 - Retained catch-up processing so newly added STRM items can automatically enter the media-information extraction queue.
 - Updates are sourced from this repository's Releases and protected by download integrity validation and rollback safeguards.
-- Added a reproducible Linux/macOS build workflow and automated compatibility tests.
+- The build entry point is now a cross-platform Python script validated on Windows, macOS, and Linux CI runners.
 
 ## Verified Environment
 
@@ -46,21 +46,30 @@ The plugin updater reads releases from `huhengbo/StrmAssistant`. A custom GitHub
 
 ## Build
 
-.NET SDK 8 is currently required. Run:
+.NET SDK 8 and Python 3.9+ are required. Windows, macOS, and Linux use the same entry point:
 
 ```bash
-./scripts/build-plugin.sh
+python scripts/build_plugin.py
 ```
 
-If `dotnet` is not available through `PATH`, specify it explicitly:
+On Windows, Python Launcher can also be used:
+
+```powershell
+py scripts/build_plugin.py
+```
+
+If `dotnet` is not available through `PATH`, provide it through the environment or argument:
 
 ```bash
-DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
+DOTNET_CMD=/path/to/dotnet python scripts/build_plugin.py
+python scripts/build_plugin.py --dotnet /path/to/dotnet
 ```
 
-The script also runs compatibility tests and writes the merged plugin to `artifacts/StrmAssistantLite.dll`.
+The script restores packages, performs the Release build, runs compatibility tests, and produces `artifacts/StrmAssistantLite.dll` with its SHA-256 printed to the console. A normal build no longer writes to the actual Emby plugin directory; installation/replacement is a separate action.
 
-> A unified Windows / macOS / Linux build path is still being cleaned up; see the repository Issues for progress.
+## Versioning And Releases
+
+Maintained releases use `YYYY.M.D.REVISION`, for example `2026.9.11.0`, with a matching tag such as `v2026.9.11.0`. See [CHANGELOG.md](CHANGELOG.md). The tag release workflow validates the version, builds and tests, generates a checksum, and creates the GitHub Release.
 
 ## Upstream, Original Work And License
 
