@@ -4,7 +4,6 @@ This record is intentionally free of credentials, access tokens, and media-libra
 
 ## Source and baseline build
 
-- Upstream: `sjtuross/StrmAssistant`
 - Baseline commit: `beb65cf8e4d7b19ce418c3aa32cfb6eff04acfb2` (`v2.0.0.30`)
 - Development branch: `codex/emby-new-api-compat`
 - SDK: .NET SDK `8.0.423`

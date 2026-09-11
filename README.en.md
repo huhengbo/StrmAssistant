@@ -24,7 +24,7 @@
 </p>
 
 > [!IMPORTANT]
-> This repository is an independently maintained derivative of [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) and is not an official upstream release. The existing plugin GUID is intentionally preserved so current users can upgrade without losing their configuration.
+> This repository is independently maintained. The existing plugin GUID is intentionally preserved so current users can upgrade without losing their configuration.
 
 ## Features
 
@@ -116,7 +116,7 @@ For first-time use:
 3. Test MediaInfo extraction and persistence on a small subset before enabling automatic catch-up.
 4. Back up Emby data and plugin configuration before large-scale processing.
 
-Additional documentation will continue to be added under `docs/`. For historical feature documentation, see the [upstream project](https://github.com/sjtuross/StrmAssistant).
+Additional documentation will continue to be added under `docs/`.
 
 ## Build from Source
 
@@ -212,15 +212,10 @@ Recommended contribution flow:
 
 When reporting issues, include the Emby version, plugin version, operating system or deployment method, reproduction steps, and relevant logs. Remove tokens, account data, local paths, and other sensitive information first.
 
-## Project Origin
+## Project Information
 
-This repository continues to follow the upstream open-source license and copyright attribution.
-
-- Maintained fork: [huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)
-- Upstream: [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
-- Earlier origin: [faush01/StrmExtract](https://github.com/faush01/StrmExtract)
-
-The branding, logo, maintenance links, Releases, and new changes in this repository are maintained independently. Copyright for upstream original work remains with the original authors and contributors.
+- Repository: [huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)
+- License: [GNU General Public License v3.0](LICENSE)
 
 ## License
 

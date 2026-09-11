@@ -742,15 +742,6 @@ namespace StrmAssistant
                     HyperLink = "https://github.com/huhengbo/StrmAssistant#readme",
                 });
 
-            options.AboutOptions.VersionInfoList.Add(
-                new GenericListItem
-                {
-                    PrimaryText = "Upstream / Credits",
-                    Icon = IconNames.code,
-                    IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant",
-                });
-
             var allUsers = LibraryApi.AllUsers;
             var userList = new List<EditorSelectOption>();
             foreach (var user in allUsers)

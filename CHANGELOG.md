@@ -42,7 +42,6 @@
 ### 📌 项目说明
 
 - 当前维护：`huhengbo/StrmAssistant`
-- 上游项目：`sjtuross/StrmAssistant`
 - License：GPL-3.0
 
 ## 版本规则
@@ -51,12 +50,37 @@
 
 - `YYYY.M.D`：发布日期。
 - `REVISION`：同一天的第几次正式发布，从 `0` 开始递增。
-- Git Tag 使用 `v` 前缀，例如 `v2026.9.11.0`。
-- 该规则用于与上游 `2.0.0.x` 版本序列区分，同时继续兼容插件内部的 `System.Version` 比较逻辑。
+- Git Tag 使用 `v` 前缀，例如 `v2026.9.12.0`。
+- 版本号保持与插件内部 `System.Version` 比较逻辑兼容。
+
+## 2026.9.12.0
+
+> 本版本是稳定性与项目链接清理修正版，不新增复杂功能。
+
+### 🐛 问题修复
+
+- 移除插件 About 页面中的 `Upstream / Credits` 旧项目入口，项目、文档与更新入口统一指向当前仓库。
+- 修复运行中调整并发数时 `SemaphoreSlim` 被替换导致的竞态问题。
+- 修复批量删除版本时清理错误内部元数据目录的问题。
+- 修复前端请求失败仍显示“成功”的提示问题。
+- 通知标题和管理员弹窗统一使用 `Strm Assistant Enhanced` 品牌名称。
+
+### 📦 升级说明
+
+已有用户可以直接覆盖升级 `StrmAssistantLite.dll`，现有插件 GUID 与配置保持不变。替换 DLL 后重启 Emby Server 即可。
+
+### ✅ 兼容性
+
+当前重点维护 Emby Server 4.9.x。
+
+### 📌 项目说明
+
+- 当前维护：`huhengbo/StrmAssistant`
+- License：GPL-3.0
 
 ## 2026.9.11.0
 
-> 上游基线：`sjtuross/StrmAssistant v2.0.0.30`。这是 `Strm Assistant Enhanced` 独立维护后的首个正式版本。
+> `Strm Assistant Enhanced` 独立维护后的首个正式版本。
 
 ### ✨ 主要更新
 
@@ -64,7 +88,7 @@
   - 插件显示名称统一为 `Strm Assistant Enhanced`。
   - 更换独立 Logo。
   - 项目、文档、免责声明及更新地址统一切换到当前维护仓库。
-  - 保留上游项目 Credits 与 GPL-3.0 授权信息。
+  - 项目发布继续遵循 GPL-3.0。
 
 - **增强 Emby 4.9 兼容性**
   - 优化 STRM 媒体挂载与路径解析。
@@ -83,7 +107,7 @@
 - 修复新版 Emby 中部分 STRM 媒体信息提取失败的问题。
 - 修复媒体信息 JSON 写入或删除时可能触发重复媒体库监听的问题。
 - 修复新版 Emby 媒体源与外挂字幕相关 API 变化带来的兼容问题。
-- 修复二开版本中上游 Logo、仓库链接、Wiki、免责声明等品牌残留。
+- 修复旧 Logo、仓库链接、Wiki、免责声明等品牌残留。
 
 ### ⚙️ 优化调整
 
@@ -154,9 +178,5 @@ DLL SHA-256：
 
 ### 📌 项目说明
 
-本项目基于 `sjtuross/StrmAssistant` 二次开发并独立维护。
-
 - 当前维护：`huhengbo/StrmAssistant`
-- 上游项目：`sjtuross/StrmAssistant`
-- 更早来源：`faush01/StrmExtract`
 - License：GPL-3.0
