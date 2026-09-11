@@ -39,6 +39,11 @@ jobs:
         with:
           dotnet-version: '8.x'
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Validate tag matches assembly version
         shell: bash
         run: |
@@ -52,7 +57,7 @@ jobs:
           [[ "$version" == "$file_version" ]] || { echo "Tag $version != FileVersion $file_version" >&2; exit 1; }
 
       - name: Build and test plugin
-        run: ./scripts/build-plugin.sh
+        run: python scripts/build_plugin.py
 
       - name: Generate checksum
         shell: bash
