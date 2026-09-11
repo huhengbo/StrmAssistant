@@ -16,7 +16,7 @@
 - 新增 STRM 媒体信息 JSON 缺失检查与补漏任务，可为已入库但缺少持久化媒体信息的 STRM 逐项补齐。
 - 保留追更模式，可在新增 STRM 入库后自动进入媒体信息提取队列。
 - 插件自更新固定从本仓库 Releases 获取，并对下载文件进行完整性校验与失败回滚保护。
-- 补充 Linux/macOS 环境下的可复现构建流程和兼容性自动测试。
+- 提供 Windows、macOS、Linux 统一的可复现构建入口和兼容性自动测试。
 
 ## 验证环境
 
@@ -46,21 +46,21 @@
 
 ## 构建
 
-仓库当前提供可重复执行的构建脚本，需要 .NET SDK 8：
+需要 Python 3.10+ 与 .NET SDK 8。Windows、macOS、Linux 使用同一个入口：
 
 ```bash
-./scripts/build-plugin.sh
+python scripts/build_plugin.py
 ```
 
-如果 `dotnet` 不在 `PATH` 中，可显式指定：
+如果 `dotnet` 不在 `PATH` 中：
 
 ```bash
-DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
+python scripts/build_plugin.py --dotnet /path/to/dotnet
 ```
 
-构建会同时运行兼容性测试，产物位于 `artifacts/StrmAssistantLite.dll`。
+Unix 环境仍保留 `./scripts/build-plugin.sh` 作为兼容包装器。构建过程会在系统临时目录创建一次性源码副本，因此 `Resource.Embedder` 的旧版路径兼容文件不会写入工作区；构建成功后只将最终产物复制到 `artifacts/StrmAssistantLite.dll`。
 
-> 跨 Windows / macOS / Linux 的统一构建链路仍在继续收口，详见仓库 Issues。
+GitHub Actions 会在 Windows、macOS、Linux 三个平台执行相同构建和测试流程。
 
 ## 上游、原创与授权
 
