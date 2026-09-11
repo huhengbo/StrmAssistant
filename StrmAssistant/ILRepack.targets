@@ -1,0 +1,20 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="BuildPluginArtifact"
+          AfterTargets="PostBuildEvent"
+          Condition="'$(Configuration)' == 'Release' and '$(IsCrossTargetingBuild)' != 'true'">
+    <ItemGroup>
+      <PluginMergeInput Include="$(TargetPath)" />
+      <PluginMergeInput Include="$(TargetDir)ChineseConverter.dll"
+                        Condition="Exists('$(TargetDir)ChineseConverter.dll')" />
+    </ItemGroup>
+
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PluginOutputPath)'))" />
+
+    <ILRepack
+      InputAssemblies="@(PluginMergeInput)"
+      OutputFile="$(PluginOutputPath)"
+      TargetKind="Dll"
+      LibraryPath="$(TargetDir)"
+      Parallel="true" />
+  </Target>
+</Project>
