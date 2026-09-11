@@ -39,7 +39,7 @@ namespace StrmAssistant.Common
             {
                 var request = new NotificationRequest
                 {
-                    Title = Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                    Title = Plugin.DisplayName,
                     EventId = "favorites.update",
                     User = user,
                     Item = item,
@@ -60,8 +60,7 @@ namespace StrmAssistant.Common
 
             var request = new NotificationRequest
             {
-                Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
-                        Resources.Notification_DeepDelete_EventName,
+                Title = Plugin.DisplayName + " - " + Resources.Notification_DeepDelete_EventName,
                 EventId = "deep.delete",
                 User = user,
                 Item = item,
@@ -83,7 +82,7 @@ namespace StrmAssistant.Common
             {
                 var message = new MessageCommand
                 {
-                    Header = Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                    Header = Plugin.DisplayName,
                     Text = string.Format(
                         Resources.Notification_IntroUpdate_Message, episode.FindSeriesName(), episode.FindSeasonName()),
                     TimeoutMs = 500
@@ -93,8 +92,7 @@ namespace StrmAssistant.Common
 
             var request = new NotificationRequest
             {
-                Title =
-                    Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                Title = Plugin.DisplayName,
                 EventId = "introskip.update",
                 User = _userManager.GetUserById(session.UserInternalId),
                 Item = episode,
@@ -115,7 +113,7 @@ namespace StrmAssistant.Common
             {
                 var message = new MessageCommand
                 {
-                    Header = Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                    Header = Plugin.DisplayName,
                     Text = string.Format(
                         Resources.Notification_CreditsUpdate_Message, episode.FindSeriesName(), episode.FindSeasonName()),
                     TimeoutMs = 500
@@ -125,8 +123,7 @@ namespace StrmAssistant.Common
 
             var request = new NotificationRequest
             {
-                Title =
-                    Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                Title = Plugin.DisplayName,
                 EventId = "introskip.update",
                 User = _userManager.GetUserById(session.UserInternalId),
                 Item = episode,
@@ -143,7 +140,7 @@ namespace StrmAssistant.Common
         {
             var message = new MessageCommand
             {
-                Header = Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                Header = Plugin.DisplayName,
                 Text = text,
                 TimeoutMs = timeout
             };
