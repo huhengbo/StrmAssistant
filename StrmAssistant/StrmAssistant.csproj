@@ -6,7 +6,7 @@
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
-    <PluginOutputPath Condition="'$(PluginOutputPath)' == ''">%AppData%\Emby-Server\programdata\plugins\$(TargetFileName)</PluginOutputPath>
+    <PluginOutputPath Condition="'$(PluginOutputPath)' == ''">$(MSBuildProjectDirectory)/../artifacts/$(TargetFileName)</PluginOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
