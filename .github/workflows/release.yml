@@ -43,7 +43,9 @@ jobs:
             version="$(sed -n 's:.*<AssemblyVersion>\(.*\)</AssemblyVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
             tag="v${version}"
           fi
+          version="${tag#v}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -60,17 +62,38 @@ jobs:
         run: |
           set -euo pipefail
           tag='${{ steps.release_tag.outputs.tag }}'
+          version='${{ steps.release_tag.outputs.version }}'
           [[ "$tag" == v* ]] || { echo "Release tag must start with v" >&2; exit 1; }
-          version="${tag#v}"
           assembly_version="$(sed -n 's:.*<AssemblyVersion>\(.*\)</AssemblyVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
           file_version="$(sed -n 's:.*<FileVersion>\(.*\)</FileVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
           [[ "$version" == "$assembly_version" ]] || { echo "Tag $version != AssemblyVersion $assembly_version" >&2; exit 1; }
           [[ "$version" == "$file_version" ]] || { echo "Tag $version != FileVersion $file_version" >&2; exit 1; }
 
+      - name: Generate Chinese release notes
+        run: >-
+          python scripts/generate_release_notes.py
+          --version '${{ steps.release_tag.outputs.version }}'
+          --output release-notes.md
+
+      - name: Check existing release
+        id: existing_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and test plugin
+        if: steps.existing_release.outputs.exists != 'true' || github.event_name == 'workflow_dispatch'
         run: python scripts/build_plugin.py
 
       - name: Generate checksum
+        if: steps.existing_release.outputs.exists != 'true' || github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           cd artifacts
@@ -84,17 +107,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists; uploading assets with clobber."
-            gh release upload "$RELEASE_TAG" \
-              artifacts/StrmAssistantLite.dll \
-              artifacts/StrmAssistantLite.dll.sha256 \
-              --clobber
+          if [[ '${{ steps.existing_release.outputs.exists }}' == 'true' ]]; then
+            echo "Release $RELEASE_TAG already exists; synchronizing Chinese notes."
+            gh release edit "$RELEASE_TAG" \
+              --title "Strm Assistant Enhanced $RELEASE_TAG" \
+              --notes-file release-notes.md
+
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+              gh release upload "$RELEASE_TAG" \
+                artifacts/StrmAssistantLite.dll \
+                artifacts/StrmAssistantLite.dll.sha256 \
+                --clobber
+            fi
           else
             gh release create "$RELEASE_TAG" \
               artifacts/StrmAssistantLite.dll \
               artifacts/StrmAssistantLite.dll.sha256 \
               --target "$GITHUB_SHA" \
               --title "Strm Assistant Enhanced $RELEASE_TAG" \
-              --generate-notes
+              --notes-file release-notes.md
           fi
