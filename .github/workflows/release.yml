@@ -1,0 +1,83 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve release tag
+        id: release_tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release_tag.outputs.tag }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Validate tag matches assembly version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ steps.release_tag.outputs.tag }}'
+          [[ "$tag" == v* ]] || { echo "Release tag must start with v" >&2; exit 1; }
+          version="${tag#v}"
+          assembly_version="$(sed -n 's:.*<AssemblyVersion>\(.*\)</AssemblyVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
+          file_version="$(sed -n 's:.*<FileVersion>\(.*\)</FileVersion>.*:\1:p' StrmAssistant/StrmAssistant.csproj | head -n1)"
+          [[ "$version" == "$assembly_version" ]] || { echo "Tag $version != AssemblyVersion $assembly_version" >&2; exit 1; }
+          [[ "$version" == "$file_version" ]] || { echo "Tag $version != FileVersion $file_version" >&2; exit 1; }
+
+      - name: Build and test plugin
+        run: ./scripts/build-plugin.sh
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          cd artifacts
+          sha256sum StrmAssistantLite.dll > StrmAssistantLite.dll.sha256
+          cat StrmAssistantLite.dll.sha256
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; uploading assets with clobber."
+            gh release upload "$RELEASE_TAG" \
+              artifacts/StrmAssistantLite.dll \
+              artifacts/StrmAssistantLite.dll.sha256 \
+              --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              artifacts/StrmAssistantLite.dll \
+              artifacts/StrmAssistantLite.dll.sha256 \
+              --title "Strm Assistant Enhanced $RELEASE_TAG" \
+              --generate-notes
+          fi
