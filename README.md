@@ -24,7 +24,7 @@
 </p>
 
 > [!IMPORTANT]
-> 本项目是基于 [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) 的二次开发维护版本，不代表上游官方发布。当前保留原插件 GUID，以便已有用户直接升级并继续使用原配置。
+> 本项目由本仓库独立维护。当前保留原插件 GUID，以便已有用户直接升级并继续使用原配置。
 
 ## 功能特性
 
@@ -118,7 +118,7 @@ StrmAssistantLite.dll.sha256
 3. 开启自动追更前，先在少量媒体上验证 MediaInfo 提取与持久化结果。
 4. 执行大规模处理前，建议备份 Emby 数据与插件配置。
 
-更完整的功能说明会逐步补充到 `docs/`；历史功能设计和上游说明可参考 [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)。
+更完整的功能说明会逐步补充到 `docs/`。
 
 ## 本地构建
 
@@ -227,15 +227,10 @@ release: vYYYY.M.D.REVISION
 - 可复现步骤。
 - 相关日志（请先移除 Token、账号、路径等敏感信息）。
 
-## 项目来源
+## 项目信息
 
-本项目继续遵循上游开源许可证与版权归属。
-
-- 当前维护：[huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)
-- 上游项目：[sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
-- 更早来源：[faush01/StrmExtract](https://github.com/faush01/StrmExtract)
-
-本仓库的品牌、Logo、维护链接、Release 与新增改动由当前维护版本独立管理；上游原创成果的版权归原作者及贡献者所有。
+- 当前仓库：[huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)
+- 许可证：[GNU General Public License v3.0](LICENSE)
 
 ## License
 
