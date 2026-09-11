@@ -1,0 +1,155 @@
+name: Remove Upstream References Once
+
+on:
+  push:
+    branches:
+      - release/v2026.9.12.0-remove-upstream
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.head_commit.message == 'chore: prepare upstream cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v2026.9.12.0-remove-upstream
+          fetch-depth: 0
+
+      - name: Remove legacy upstream references and prepare release
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          plugin = Path('StrmAssistant/Plugin.cs')
+          text = plugin.read_text(encoding='utf-8')
+          pattern = re.compile(
+              r'\n\s*options\.AboutOptions\.VersionInfoList\.Add\(\n'
+              r'\s*new GenericListItem\n\s*\{\n'
+              r'\s*PrimaryText = "Upstream / Credits",\n'
+              r'\s*Icon = IconNames\.code,\n'
+              r'\s*IconMode = ItemListIconMode\.SmallRegular,\n'
+              r'\s*HyperLink = "https://github\.com/sjtuross/StrmAssistant",\n'
+              r'\s*\}\);\n'
+          )
+          text, count = pattern.subn('\n', text, count=1)
+          if count != 1:
+              raise SystemExit('Expected Upstream / Credits block not found exactly once')
+          plugin.write_text(text, encoding='utf-8')
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          text = re.sub(
+              r'> \[!IMPORTANT\]\n> 本项目是基于 .*?\n\n',
+              '> [!IMPORTANT]\n> 本项目由本仓库独立维护。当前保留原插件 GUID，以便已有用户直接升级并继续使用原配置。\n\n',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'更完整的功能说明会逐步补充到 `docs/`；历史功能设计和上游说明可参考 .*?。\n',
+              '更完整的功能说明会逐步补充到 `docs/`。\n',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'## 项目来源\n.*?(?=## License)',
+              '## 项目信息\n\n- 当前仓库：[huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)\n- 许可证：[GNU General Public License v3.0](LICENSE)\n\n',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          readme.write_text(text, encoding='utf-8')
+
+          readme_en = Path('README.en.md')
+          text = readme_en.read_text(encoding='utf-8')
+          text = re.sub(
+              r'> \[!IMPORTANT\]\n> This repository is an independently maintained derivative of .*?\n\n',
+              '> [!IMPORTANT]\n> This repository is independently maintained. The existing plugin GUID is intentionally preserved so current users can upgrade without losing their configuration.\n\n',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'Additional documentation will continue to be added under `docs/`\. For historical feature documentation, see the \[upstream project\]\(.*?\)\.\n',
+              'Additional documentation will continue to be added under `docs/`.\n',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'## Project Origin\n.*?(?=## License)',
+              '## Project Information\n\n- Repository: [huhengbo/StrmAssistant](https://github.com/huhengbo/StrmAssistant)\n- License: [GNU General Public License v3.0](LICENSE)\n\n',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          readme_en.write_text(text, encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text(encoding='utf-8')
+          text = text.replace('- 上游项目：`sjtuross/StrmAssistant`\n', '')
+          text = text.replace('- 更早来源：`faush01/StrmExtract`\n', '')
+          text = text.replace(
+              '- 该规则用于与上游 `2.0.0.x` 版本序列区分，同时继续兼容插件内部的 `System.Version` 比较逻辑。',
+              '- 版本号保持与插件内部 `System.Version` 比较逻辑兼容。',
+          )
+          text = text.replace(
+              '> 上游基线：`sjtuross/StrmAssistant v2.0.0.30`。这是 `Strm Assistant Enhanced` 独立维护后的首个正式版本。',
+              '> `Strm Assistant Enhanced` 独立维护后的首个正式版本。',
+          )
+          text = text.replace('  - 保留上游项目 Credits 与 GPL-3.0 授权信息。', '  - 项目发布继续遵循 GPL-3.0。')
+          text = text.replace('修复二开版本中上游 Logo、仓库链接、Wiki、免责声明等品牌残留。', '修复旧 Logo、仓库链接、Wiki、免责声明等品牌残留。')
+          text = text.replace('本项目基于 `sjtuross/StrmAssistant` 二次开发并独立维护。\n\n', '')
+
+          release_section = '''## 2026.9.12.0
+
+> 本版本是稳定性与项目链接清理修正版，不新增复杂功能。
+
+### 🐛 问题修复
+
+- 移除插件 About 页面中的 `Upstream / Credits` 旧项目入口，项目、文档与更新入口统一指向当前仓库。
+- 修复运行中调整并发数时 `SemaphoreSlim` 被替换导致的竞态问题。
+- 修复批量删除版本时清理错误内部元数据目录的问题。
+- 修复前端请求失败仍显示“成功”的提示问题。
+- 通知标题和管理员弹窗统一使用 `Strm Assistant Enhanced` 品牌名称。
+
+### 📦 升级说明
+
+已有用户可以直接覆盖升级 `StrmAssistantLite.dll`，现有插件 GUID 与配置保持不变。替换 DLL 后重启 Emby Server 即可。
+
+### ✅ 兼容性
+
+当前重点维护 Emby Server 4.9.x。
+
+### 📌 项目说明
+
+- 当前维护：`huhengbo/StrmAssistant`
+- License：GPL-3.0
+
+'''
+          if '## 2026.9.12.0' not in text:
+              text = text.replace('## 2026.9.11.0\n', release_section + '## 2026.9.11.0\n', 1)
+          changelog.write_text(text, encoding='utf-8')
+
+          csproj = Path('StrmAssistant/StrmAssistant.csproj')
+          text = csproj.read_text(encoding='utf-8')
+          text = text.replace('<AssemblyVersion>2026.9.11.0</AssemblyVersion>', '<AssemblyVersion>2026.9.12.0</AssemblyVersion>')
+          text = text.replace('<FileVersion>2026.9.11.0</FileVersion>', '<FileVersion>2026.9.12.0</FileVersion>')
+          csproj.write_text(text, encoding='utf-8')
+          PY
+
+          if git grep -nEi 'sjtuross|faush01|Upstream / Credits|上游项目|upstream project' -- ':!LICENSE'; then
+            echo 'Legacy upstream references remain.' >&2
+            exit 1
+          fi
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'huhengbo'
+          git config user.email 'huhbo1992@126.com'
+          git add StrmAssistant/Plugin.cs StrmAssistant/StrmAssistant.csproj README.md README.en.md CHANGELOG.md
+          git commit -m 'release: v2026.9.12.0'
+          git push origin HEAD:release/v2026.9.12.0-remove-upstream
