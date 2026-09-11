@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\StrmAssistant\Common\MediaMountCompatibility.cs" Link="MediaMountCompatibility.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\PluginUpdateSecurity.cs" Link="PluginUpdateSecurity.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />

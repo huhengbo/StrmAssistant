@@ -50,8 +50,10 @@ using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant
 {
-    public class Plugin: BasePluginSimpleUI<PluginOptions>, IHasThumbImage
+    public class Plugin : BasePluginSimpleUI<PluginOptions>, IHasThumbImage
     {
+        public const string DisplayName = "Strm Assistant Enhanced";
+
         public static Plugin Instance { get; private set; }
         public static LibraryApi LibraryApi { get; private set; }
         public static MediaInfoApi MediaInfoApi { get; private set; }
@@ -331,11 +333,11 @@ namespace StrmAssistant
 
         public ImageFormat ThumbImageFormat => ImageFormat.Png;
 
-        public override string Description => "Extract MediaInfo and Enable IntroSkip";
+        public override string Description => "Enhanced STRM media management and Emby compatibility";
 
         public override Guid Id => _id;
 
-        public sealed override string Name => "Strm Assistant";
+        public sealed override string Name => DisplayName;
 
         public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 
@@ -573,7 +575,7 @@ namespace StrmAssistant
                     PrimaryText = Resources.DisclaimerButtonText,
                     Icon = IconNames.privacy_tip,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant#%E5%A3%B0%E6%98%8E"
+                    HyperLink = "https://github.com/huhengbo/StrmAssistant#免责声明"
                 });
 
             if (options.ShowConflictPluginLoadedStatus)
@@ -728,7 +730,7 @@ namespace StrmAssistant
                     PrimaryText = Resources.Repo_Link,
                     Icon = IconNames.code,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant",
+                    HyperLink = "https://github.com/huhengbo/StrmAssistant",
                 });
 
             options.AboutOptions.VersionInfoList.Add(
@@ -737,7 +739,16 @@ namespace StrmAssistant
                     PrimaryText = Resources.Wiki_Link,
                     Icon = IconNames.menu_book,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant/wiki",
+                    HyperLink = "https://github.com/huhengbo/StrmAssistant#readme",
+                });
+
+            options.AboutOptions.VersionInfoList.Add(
+                new GenericListItem
+                {
+                    PrimaryText = "Upstream / Credits",
+                    Icon = IconNames.code,
+                    IconMode = ItemListIconMode.SmallRegular,
+                    HyperLink = "https://github.com/sjtuross/StrmAssistant",
                 });
 
             var allUsers = LibraryApi.AllUsers;
@@ -762,8 +773,7 @@ namespace StrmAssistant
         protected override void OnCreatePageInfo(PluginPageInfo pageInfo)
         {
             pageInfo.Name = Name;
-            pageInfo.DisplayName =
-                Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant", DefaultUICulture);
+            pageInfo.DisplayName = DisplayName;
             pageInfo.EnableInMainMenu = true;
             pageInfo.MenuIcon = "video_settings";
 

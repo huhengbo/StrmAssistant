@@ -7,6 +7,7 @@ using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -49,9 +50,6 @@ namespace StrmAssistant.ScheduledTask
         public string Key => "UpdatePluginTask";
 
         public string Name => "Update Plugin";
-        //public string Name =>
-        //    Resources.ResourceManager.GetString("UpdatePluginTask_Name_Update_Plugin",
-        //        Plugin.Instance.DefaultUICulture);
 
         public string Description => Resources.ResourceManager.GetString(
             "UpdatePluginTask_Description_Updates_plugin_to_the_latest_version", Plugin.Instance.DefaultUICulture);
@@ -76,25 +74,24 @@ namespace StrmAssistant.ScheduledTask
 
             try
             {
-                var githubToken= Plugin.Instance.GetPluginOptions().AboutOptions.GitHubToken;
-
-                using var response = await _httpClient.SendAsync(new HttpRequestOptions
+                var githubToken = Plugin.Instance.GetPluginOptions().AboutOptions.GitHubToken;
+                var releaseRequest = new HttpRequestOptions
                 {
                     Url = RepoReleaseUrl,
                     CancellationToken = cancellationToken,
                     AcceptHeader = "application/json",
                     UserAgent = Plugin.Instance.UserAgent,
-                    EnableDefaultUserAgent = false,
-                    RequestHeaders =
-                    {
-                        ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
-                            ? $"token {githubToken}"
-                            : null
-                    }
-                }, "GET").ConfigureAwait(false);
+                    EnableDefaultUserAgent = false
+                };
 
+                if (!string.IsNullOrWhiteSpace(githubToken) &&
+                    PluginUpdateSecurity.ShouldAttachGitHubToken(RepoReleaseUrl))
+                {
+                    releaseRequest.RequestHeaders["Authorization"] = $"token {githubToken}";
+                }
+
+                using var response = await _httpClient.SendAsync(releaseRequest, "GET").ConfigureAwait(false);
                 await using var contentStream = response.Content;
-
                 var apiResult = _jsonSerializer.DeserializeFromStream<ApiResponseInfo>(contentStream);
 
                 var currentVersion = ParseVersion(Plugin.Instance.CurrentVersion);
@@ -104,49 +101,35 @@ namespace StrmAssistant.ScheduledTask
                 {
                     _logger.Info("Found new plugin version: {0}", remoteVersion);
 
-                    var url = (apiResult?.assets ?? new List<ApiAssetInfo>())
-                        .FirstOrDefault(asset => asset.name == PluginAssemblyFilename)
-                        ?.browser_download_url;
-                    if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) throw new Exception("Invalid download url");
+                    var asset = (apiResult?.assets ?? new List<ApiAssetInfo>())
+                        .FirstOrDefault(item => item.name == PluginAssemblyFilename);
+                    var url = asset?.browser_download_url;
+                    if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+                        throw new InvalidOperationException("Invalid plugin download url");
 
                     var githubProxy = Plugin.Instance.GetPluginOptions().AboutOptions.GitHubProxy;
+                    var downloadUrl = PluginUpdateSecurity.BuildDownloadUrl(url, githubProxy);
 
-                    await using (var responseStream = await _httpClient.Get(new HttpRequestOptions
-                                     {
-                                         Url = string.IsNullOrWhiteSpace(githubProxy)
-                                             ? url
-                                             : $"{githubProxy.TrimEnd('/')}/{url.TrimStart('/')}",
-                                         CancellationToken = cancellationToken,
-                                         UserAgent = Plugin.Instance.UserAgent,
-                                         EnableDefaultUserAgent = false,
-                                         Progress = progress,
-                                         RequestHeaders =
-                                         {
-                                             ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
-                                                 ? $"token {githubToken}"
-                                                 : null
-                                         }
-                                     })
-                                     .ConfigureAwait(false))
+                    // Public release assets do not require authentication. In particular, never
+                    // attach the GitHub token when a third-party proxy is configured.
+                    await using var responseStream = await _httpClient.Get(new HttpRequestOptions
                     {
-                        using (var memoryStream = new MemoryStream())
-                        {
-                            await responseStream.CopyToAsync(memoryStream, 81920, cancellationToken)
-                                .ConfigureAwait(false);
+                        Url = downloadUrl,
+                        CancellationToken = cancellationToken,
+                        UserAgent = Plugin.Instance.UserAgent,
+                        EnableDefaultUserAgent = false,
+                        Progress = progress
+                    }).ConfigureAwait(false);
 
-                            memoryStream.Seek(0, SeekOrigin.Begin);
-                            var dllFilePath = Path.Combine(_applicationPaths.PluginsPath, PluginAssemblyFilename);
+                    using var memoryStream = new MemoryStream();
+                    await responseStream.CopyToAsync(memoryStream, 81920, cancellationToken).ConfigureAwait(false);
+                    var actualDigest = PluginUpdateSecurity.ValidatePluginPayload(memoryStream, asset?.digest);
+                    _logger.Info("Downloaded plugin SHA-256: {0}", actualDigest);
 
-                            await using (var fileStream =
-                                         new FileStream(dllFilePath, FileMode.Create, FileAccess.Write))
-                            {
-                                await memoryStream.CopyToAsync(fileStream, 81920, cancellationToken)
-                                    .ConfigureAwait(false);
-                            }
-                        }
-                    }
+                    var dllFilePath = Path.Combine(_applicationPaths.PluginsPath, PluginAssemblyFilename);
+                    InstallPlugin(memoryStream, dllFilePath, cancellationToken);
 
-                    _logger.Info("Plugin update complete");
+                    _logger.Info("Plugin update complete. Backup: {0}.bak", dllFilePath);
 
                     _activityManager.Create(new ActivityLogEntry
                     {
@@ -185,9 +168,48 @@ namespace StrmAssistant.ScheduledTask
             progress.Report(100);
         }
 
+        private static void InstallPlugin(MemoryStream stream, string dllFilePath, CancellationToken cancellationToken)
+        {
+            if (!File.Exists(dllFilePath))
+                throw new FileNotFoundException("Current plugin DLL was not found", dllFilePath);
+
+            var tempFilePath = dllFilePath + ".download";
+            var backupFilePath = dllFilePath + ".bak";
+
+            if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+
+            try
+            {
+                stream.Position = 0;
+                using (var fileStream = new FileStream(tempFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    stream.CopyTo(fileStream);
+                    fileStream.Flush();
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Copy(dllFilePath, backupFilePath, true);
+
+                try
+                {
+                    File.Copy(tempFilePath, dllFilePath, true);
+                }
+                catch
+                {
+                    if (File.Exists(backupFilePath)) File.Copy(backupFilePath, dllFilePath, true);
+                    throw;
+                }
+            }
+            finally
+            {
+                if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+            }
+        }
+
         private static Version ParseVersion(string v)
         {
-            return new Version(v.StartsWith("v") ? v.Substring(1) : v);
+            if (string.IsNullOrWhiteSpace(v)) throw new InvalidOperationException("Plugin version is missing");
+            return new Version(v.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? v.Substring(1) : v);
         }
 
         internal class ApiResponseInfo
@@ -202,6 +224,8 @@ namespace StrmAssistant.ScheduledTask
             public string name { get; set; }
 
             public string browser_download_url { get; set; }
+
+            public string digest { get; set; }
         }
     }
 }

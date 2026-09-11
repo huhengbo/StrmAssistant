@@ -14,7 +14,7 @@ namespace StrmAssistant.Options
 {
     public class PluginOptions : EditableOptionsBase
     {
-        public override string EditorTitle => Resources.PluginOptions_EditorTitle_Strm_Assistant;
+        public override string EditorTitle => global::StrmAssistant.Plugin.DisplayName;
 
         public override string EditorDescription => string.Empty;
         

@@ -1,31 +1,29 @@
-# Strm Assistant Emby 4.9 兼容构建
+# Strm Assistant Enhanced
 
-![logo](StrmAssistant/Properties/thumb.png "logo")
+![Strm Assistant Enhanced](StrmAssistant/Properties/thumb.png "Strm Assistant Enhanced")
 
 [[English]](README.en.md)
 
-这是基于原项目 [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) `v2.0.0.30` 进行二次开发的个人兼容构建。
+`Strm Assistant Enhanced` 是由本仓库维护的 StrmAssistant 二次开发版本，当前基于 [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant) `v2.0.0.30` 演进，重点维护新版 Emby Server 兼容性、STRM 媒体信息处理与稳定性增强。
 
-本仓库保留原项目的功能、项目结构和 GPL-3.0 许可证，重点补充新版 Emby Server 兼容性与 STRM 媒体信息补漏能力。原项目的完整功能介绍、使用文档和历史更新请以上游仓库为准。
+> 本项目不是上游官方发布。插件 GUID 暂时保持兼容，以便已有 StrmAssistant 用户直接升级并保留原有配置；项目 Logo、维护链接、更新源和发布信息由本仓库独立维护。
 
-## 本构建的主要改动
+## 本版本主要改动
 
 - 适配 Emby 4.9 的 STRM 媒体挂载与路径解析，修复新版 Emby 中媒体信息提取失败的问题。
 - 适配新版 Emby 的媒体源读取和外挂字幕扫描能力。
 - 修复媒体信息 JSON 写入或删除时触发重复媒体库监听的问题。
 - 新增 STRM 媒体信息 JSON 缺失检查与补漏任务，可为已入库但缺少持久化媒体信息的 STRM 逐项补齐。
 - 保留追更模式，可在新增 STRM 入库后自动进入媒体信息提取队列。
+- 插件自更新固定从本仓库 Releases 获取，并对下载文件进行完整性校验与失败回滚保护。
 - 补充 Linux/macOS 环境下的可复现构建流程和兼容性自动测试。
 
 ## 验证环境
 
-当前兼容构建已在隔离的 Emby Server `4.9.3.0` 容器中验证。
-
-已验证内容包括：
+当前版本已在隔离的 Emby Server `4.9.3.0` 容器中验证，覆盖：
 
 - 插件加载和配置页显示
-- Extract MediaInfo
-- Persist MediaInfo
+- Extract MediaInfo / Persist MediaInfo
 - STRM 媒体信息挂载与探测
 - 媒体信息 JSON 缺失检查与补漏
 - 外挂字幕扫描兼容
@@ -37,14 +35,18 @@
 
 ## 安装
 
-1. 从 Releases 下载 `StrmAssistantLite.dll`。
+1. 从本仓库 Releases 下载 `StrmAssistantLite.dll`。
 2. 将文件放入 Emby Server 的 `plugins` 目录。
 3. 重启 Emby Server。
-4. 在 Emby 插件页确认 `Strm Assistant` 已加载，再按需配置功能。
+4. 在 Emby 插件页确认 `Strm Assistant Enhanced` 已加载，再按需配置功能。
+
+## 更新与安全
+
+插件的自动更新源为本仓库 `huhengbo/StrmAssistant` 的 GitHub Releases。自定义 GitHub 下载代理不会收到 GitHub Token；下载完成后会校验 Release asset 的 SHA-256（GitHub 提供 digest 时），并在覆盖插件前保留 `.bak` 备份。如果下载、校验或替换失败，当前插件不会被静默破坏。
 
 ## 构建
 
-仓库提供可重复执行的构建脚本，需要 .NET SDK 8：
+仓库当前提供可重复执行的构建脚本，需要 .NET SDK 8：
 
 ```bash
 ./scripts/build-plugin.sh
@@ -58,13 +60,18 @@ DOTNET_CMD=/path/to/dotnet ./scripts/build-plugin.sh
 
 构建会同时运行兼容性测试，产物位于 `artifacts/StrmAssistantLite.dll`。
 
-## 原创与授权声明
+> 跨 Windows / macOS / Linux 的统一构建链路仍在继续收口，详见仓库 Issues。
 
-Strm Assistant 的原创工作归上游作者及项目贡献者所有。本仓库是针对个人使用场景的二次开发和兼容构建，不声称拥有原项目的原创成果，也不代表或替代上游官方发布。
+## 上游、原创与授权
 
-本项目依照上游采用 [GNU General Public License v3.0](LICENSE) 发布。如需了解原项目的完整功能、授权、使用说明或后续支持，请访问：
+Strm Assistant 的原创工作归上游作者及项目贡献者所有。本仓库是二次开发和兼容维护版本，不声称拥有上游项目的原创成果，也不代表或替代上游官方发布。
 
-[https://github.com/sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
+- 当前维护仓库：`huhengbo/StrmAssistant`
+- 上游项目：[sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)
+- 更早来源：`faush01/StrmExtract`
+- 许可证：[GNU General Public License v3.0](LICENSE)
+
+本 fork 的新 Logo 为本维护版本重新设计，仅用于区分当前二开发布；上游版权与 GPL-3.0 义务保持不变。
 
 ## 免责声明
 
