@@ -29,7 +29,9 @@
 
 ### 📦 升级说明
 
-- 说明是否可以直接覆盖升级、是否需要重启、是否涉及配置迁移。
+- 说明从哪些版本可以直接升级。
+- 说明是否需要迁移配置、替换文件、重启服务或刷新客户端缓存。
+- 说明新功能是否会改变现有默认行为，以及是否存在需要用户主动开启的选项。
 
 ### ✅ 兼容性
 
@@ -52,6 +54,70 @@
 - `REVISION`：同一天的第几次正式发布，从 `0` 开始递增。
 - Git Tag 使用 `v` 前缀，例如 `v2026.9.12.0`。
 - 版本号保持与插件内部 `System.Version` 比较逻辑兼容。
+
+## 2026.9.12.1
+
+> 本版本新增 Emby Web 外部播放器快捷入口，保持现有播放与插件配置默认行为不变。
+
+### ✨ 主要更新
+
+- **新增 Emby Web 外部播放**
+  - 详情页增加“外部播放”快捷入口。
+  - 右键 / `...` 菜单同步增加“外部播放”。
+  - 第一阶段支持 PotPlayer、VLC、MPV、IINA、Infuse 和复制播放链接。
+  - 根据 Windows、macOS、Linux、Android、iOS 自动过滤明显不可用的播放器。
+
+- **保留当前播放上下文**
+  - 多版本媒体使用当前选中的 `MediaSource`，不会固定播放第一个版本。
+  - 优先传递当前选中的外挂字幕；未选择时优先默认外挂字幕，其次中文字幕。
+  - 将 Emby 当前续播位置传给支持 seek/position 的外部播放器。
+  - Series 默认使用 Next Up；Season 使用首个可播放项目。
+
+- **STRM Direct 高级选项**
+  - 可选择将 HTTP/HTTPS 类型 STRM 原始地址直接交给外部播放器。
+  - 默认关闭，默认仍通过 Emby 串流地址播放，因此升级后不会改变现有播放链路。
+  - 该选项仅保存在当前浏览器 `localStorage`，不会写入服务端插件配置。
+
+### ⚙️ 优化调整
+
+- 外部播放器模块复用现有 StrmAssistant Web 注入机制，不修改 Emby `index.html`。
+- 不加载第三方远程 JavaScript 或远程播放器图标。
+- CI 增加嵌入式 Web JavaScript 语法检查，并继续执行 Windows / macOS / Ubuntu 三平台构建与测试。
+
+### 🔒 安全与稳定性
+
+- 带 Emby access token 的串流地址只在当前浏览器播放操作中生成，不写入日志、不持久化到插件配置。
+- 外部播放不引入 nginx、AList、302 路由、路径映射或本地 companion service。
+
+### 📦 升级说明
+
+- **可直接升级**：`v2026.9.12.0` 及更早的 Strm Assistant Enhanced 版本均可直接覆盖升级。
+- **无需配置迁移**：插件 GUID 保持不变，现有插件设置会继续保留。
+- **升级步骤**：使用本版本 `StrmAssistantLite.dll` 覆盖原 DLL，然后重启 Emby Server。
+- **Web 缓存**：重启后如果详情页仍未出现“外部播放”，请先强制刷新浏览器页面；仍显示旧页面时再清理 Emby Web 浏览器缓存后重新登录。
+- **默认行为不变**：`STRM Direct` 默认关闭，升级不会自动把现有 STRM 改为原始 URL 直通。
+- **外部播放器依赖**：PotPlayer / VLC / MPV / IINA / Infuse 需要客户端已安装，并且对应 URL Scheme / Protocol Handler 已正确注册；插件只负责生成并调用播放器链接。
+- **进度说明**：本版本仅将 Emby 当前续播位置单向传给支持的播放器，不会将外部播放器的播放进度回写 Emby。
+
+### ✅ 兼容性
+
+- 当前重点维护 Emby Server 4.9.x。
+- Windows / macOS / Ubuntu 构建、测试及嵌入式 JavaScript 语法检查均已通过。
+- 外部播放器最终拉起行为仍取决于浏览器对自定义协议的支持，以及本机播放器协议注册状态。
+
+### 🔐 文件校验
+
+Release 同时提供：
+
+- `StrmAssistantLite.dll`
+- `StrmAssistantLite.dll.sha256`
+
+请以 Release 页面公布的 SHA-256 为准。
+
+### 📌 项目说明
+
+- 当前维护：`huhengbo/StrmAssistant`
+- License：GPL-3.0
 
 ## 2026.9.12.0
 
