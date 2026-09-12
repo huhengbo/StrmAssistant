@@ -5,7 +5,7 @@
 <h1 align="center">Strm Assistant Enhanced</h1>
 
 <p align="center">
-  An STRM-focused enhancement plugin for Emby Server, providing media-info extraction and persistence, gap recovery, subtitle scanning, intro/credits support, and compatibility improvements.
+  An STRM-focused enhancement plugin for Emby Server, providing media-info extraction and persistence, gap recovery, subtitle scanning, intro/credits support, Emby Web external playback, and compatibility improvements.
 </p>
 
 <p align="center">
@@ -48,6 +48,13 @@
   - Preserve intro / credits detection capabilities.
   - Retain existing multi-version media enhancements.
 
+- **Emby Web external playback**
+  - Adds an External Player action to item details and overflow/context menus while reusing Emby's native button and action-sheet patterns where available.
+  - Supports PotPlayer, VLC, MPV, IINA, Infuse, and copying the stream URL, with obvious unsupported players filtered by operating system.
+  - Uses the currently selected MediaSource and passes external subtitles plus the current Emby resume position where the target player supports it.
+  - Series uses Next Up and Season uses the first playable Episode.
+  - The feature can be disabled globally from Experience Enhance settings. STRM Direct is also controlled from plugin settings and remains disabled by default.
+
 - **Safer self-update flow**
   - Updates are sourced only from this repository's GitHub Releases.
   - Custom GitHub proxies never receive the configured GitHub token.
@@ -71,6 +78,7 @@ The actively maintained target is **Emby Server 4.9.x**.
 | Missing MediaInfo recovery | ✅ |
 | External subtitle scanning | ✅ |
 | Automatic catch-up for new STRM items | ✅ |
+| Emby Web external playback | ✅ Emby 4.9 Web |
 
 Other Emby versions have not received the same level of end-to-end validation. Back up the existing plugin DLL and configuration before upgrading.
 
@@ -115,6 +123,17 @@ For first-time use:
 2. Run the missing MediaInfo recovery task for existing STRM libraries if needed.
 3. Test MediaInfo extraction and persistence on a small subset before enabling automatic catch-up.
 4. Back up Emby data and plugin configuration before large-scale processing.
+
+### Emby Web external playback
+
+1. In **Experience Enhance**, enable **Web 外部播放 / External Player**. It defaults to enabled to preserve the behavior of existing installations.
+2. Open a Movie / Episode / Series / Season and use External Player from the detail page or the item's overflow/context menu.
+3. The plugin presents supported candidates for the current OS: PotPlayer, VLC, MPV, IINA, Infuse, plus Copy Stream URL.
+4. External players must already be installed on the client device and have their URL scheme / protocol handler registered. The plugin only generates and launches the playback URL.
+5. **STRM Direct** is disabled by default. When enabled, HTTP/HTTPS STRM items pass their original URL directly to the external player; otherwise the Emby stream URL is used.
+6. Resume position is passed one-way where supported. External-player playback progress is **not written back to Emby**.
+
+Refresh the Emby Web page after changing external-player plugin settings so the Web client reloads the current configuration.
 
 Additional documentation will continue to be added under `docs/`.
 
@@ -167,6 +186,7 @@ Current automated tests focus on:
 - Emby media-mount compatibility contracts.
 - Plugin updater security behavior.
 - Reflection contract matching for Emby private APIs.
+- Embedded Emby Web JavaScript syntax checks.
 
 Before submitting changes, run at least:
 

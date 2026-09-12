@@ -5,7 +5,7 @@
 <h1 align="center">Strm Assistant Enhanced</h1>
 
 <p align="center">
-  面向 Emby Server 的 STRM 媒体库增强插件，提供媒体信息提取与持久化、缺失补漏、字幕扫描、片头片尾检测及兼容性增强。
+  面向 Emby Server 的 STRM 媒体库增强插件，提供媒体信息提取与持久化、缺失补漏、字幕扫描、片头片尾检测、Emby Web 外部播放及兼容性增强。
 </p>
 
 <p align="center">
@@ -48,6 +48,13 @@
   - 保留片头 / 片尾检测相关能力。
   - 支持多版本媒体整理等现有增强功能。
 
+- **Emby Web 外部播放**
+  - 在影片详情页和更多菜单中提供“外部播放”入口，并尽量复用 Emby 原生按钮与 Action Sheet 交互。
+  - 支持 PotPlayer、VLC、MPV、IINA、Infuse，以及复制播放链接；根据当前操作系统过滤明显不可用的播放器。
+  - 使用当前选择的 MediaSource，支持多版本媒体、外挂字幕和 Emby 当前续播位置的单向传递。
+  - Series 默认使用 Next Up，Season 使用首个可播放 Episode。
+  - 可在插件“体验增强”设置中整体关闭 Web 外部播放；`STRM 直通` 也由插件设置统一控制，默认关闭。
+
 - **安全的插件自更新**
   - 更新源固定为本仓库 GitHub Releases。
   - 自定义 GitHub Proxy 不会收到 GitHub Token。
@@ -73,6 +80,7 @@
 | MediaInfo 缺失补漏 | ✅ |
 | 外挂字幕扫描 | ✅ |
 | 新增 STRM 自动追更 | ✅ |
+| Emby Web 外部播放 | ✅ Emby 4.9 Web |
 
 其他 Emby 版本没有进行同等强度的完整验证，升级或替换插件前建议备份现有 DLL 与配置。
 
@@ -117,6 +125,17 @@ StrmAssistantLite.dll.sha256
 2. 对已有 STRM 媒体，可先运行 MediaInfo 缺失补漏任务。
 3. 开启自动追更前，先在少量媒体上验证 MediaInfo 提取与持久化结果。
 4. 执行大规模处理前，建议备份 Emby 数据与插件配置。
+
+### Emby Web 外部播放
+
+1. 在插件配置的 **体验增强 / Experience Enhance** 中启用 **Web 外部播放 / External Player**。该开关默认开启，用于保持已有版本的升级行为。
+2. 在 Movie / Episode / Series / Season 详情页点击“外部播放”，或从对应项目的更多菜单进入。
+3. 插件会按照当前系统显示可用候选：PotPlayer、VLC、MPV、IINA、Infuse，以及“复制播放链接”。
+4. 外部播放器需要在当前客户端设备自行安装，并正确注册对应 URL Scheme / Protocol Handler；插件只负责生成并调用播放地址。
+5. **STRM 直通 / STRM Direct** 默认关闭。开启后，HTTP/HTTPS 类型 STRM 会直接把原始 URL 交给外部播放器；关闭时继续使用 Emby 串流地址。
+6. 当前只会把 Emby 的续播位置单向传给支持的播放器，**不会把外部播放器的播放进度回写 Emby**。
+
+> 修改外部播放相关插件设置后，刷新 Emby Web 页面即可重新读取配置。
 
 更完整的功能说明会逐步补充到 `docs/`。
 
@@ -169,6 +188,7 @@ GitHub Actions 会在以下环境执行统一构建和测试流程：
 - Emby Media Mount 兼容契约。
 - 插件自动更新安全逻辑。
 - Emby 私有 API 反射方法契约匹配。
+- Emby Web 嵌入式 JavaScript 语法检查。
 
 提交改动前建议至少执行：
 

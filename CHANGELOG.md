@@ -55,6 +55,57 @@
 - Git Tag 使用 `v` 前缀，例如 `v2026.9.12.0`。
 - 版本号保持与插件内部 `System.Version` 比较逻辑兼容。
 
+## 2026.9.13.0
+
+> 本版本收口 Emby Web 外部播放体验：界面更贴近 Emby 原生风格，并将外部播放与 STRM Direct 纳入插件统一配置，同时补全 README 与发布说明。
+
+### ✨ 主要更新
+
+- **外部播放加入插件设置**
+  - “体验增强 / Experience Enhance”新增 `Web 外部播放 / External Player` 总开关。
+  - 总开关默认开启，保持升级后现有外部播放能力可用。
+  - 关闭后详情页按钮和更多菜单中的“外部播放”入口都不会显示。
+  - `STRM 直通 / STRM Direct` 从浏览器 `localStorage` 调整为插件服务端配置，默认关闭。
+
+- **外部播放 UI 更贴近 Emby**
+  - 详情页入口改用 Emby 原生详情按钮样式。
+  - 播放器选择优先使用 Emby 原生 Action Sheet，并保留标准 Dialog 回退。
+  - 播放器操作与“复制播放链接”继续按当前操作系统过滤和展示。
+
+### ⚙️ 优化调整
+
+- Web 客户端启动时读取插件当前外部播放配置，设置修改后刷新 Emby Web 页面即可生效。
+- 外部播放菜单和详情页入口使用同一总开关，避免显示状态不一致。
+- STRM Direct 不再在播放器选择弹窗中临时切换，配置语义统一到插件设置。
+- README / README.en 新增完整的 Emby Web 外部播放功能与使用说明。
+
+### 📦 升级说明
+
+- **可直接升级**：`v2026.9.12.2` 及更早版本均可直接覆盖升级。
+- **外部播放总开关默认开启**：升级后仍会显示原有外部播放入口；如不需要，可在插件“体验增强”中关闭。
+- **STRM Direct 默认关闭**：该设置已从浏览器 `localStorage` 迁移到插件配置。旧浏览器中曾经开启的本地 STRM Direct 状态不会自动迁移，需要在插件设置中重新开启。
+- **生效方式**：替换 DLL 并重启 Emby Server 后，刷新 Emby Web 页面以重新加载外部播放配置和前端脚本。
+- **播放器依赖不变**：PotPlayer / VLC / MPV / IINA / Infuse 仍需在客户端安装并注册 URL Scheme / Protocol Handler。
+- **进度行为不变**：只单向传递 Emby 当前续播位置，不回写外部播放器进度。
+
+### ✅ 兼容性
+
+- 当前重点维护 Emby Server 4.9.x。
+- 外部播放继续支持 Movie / Episode / Series / Season、多版本 MediaSource、外挂字幕、续播位置和复制播放链接。
+- Windows / macOS / Linux 继续由 GitHub Actions 执行构建测试，并检查嵌入式 Web JavaScript 语法。
+
+### 🔐 文件校验
+
+Release 将继续提供：
+
+- `StrmAssistantLite.dll`
+- `StrmAssistantLite.dll.sha256`
+
+### 📌 项目说明
+
+- 当前维护：`huhengbo/StrmAssistant`
+- License：GPL-3.0
+
 ## 2026.9.12.2
 
 > 本版本更新 Strm Assistant Enhanced 的项目与插件 Logo，不改变任何现有功能行为。
