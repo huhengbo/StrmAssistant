@@ -11,11 +11,13 @@
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
     <None Remove="Web\Resources\strmassistant.js" />
+    <None Remove="Web\Resources\externalplayer.js" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\thumb.png" />
     <EmbeddedResource Include="Web\Resources\shortcuts.js" />
     <EmbeddedResource Include="Web\Resources\strmassistant.js" />
+    <EmbeddedResource Include="Web\Resources\externalplayer.js" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
@@ -27,7 +29,6 @@
     <PackageReference Include="mediabrowser.server.core" Version="4.8.0.80" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Resource.Embedder" Version="2.2.0" />
   </ItemGroup>

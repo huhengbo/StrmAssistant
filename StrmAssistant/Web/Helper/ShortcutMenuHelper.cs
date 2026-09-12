@@ -12,11 +12,14 @@ namespace StrmAssistant.Web.Helper
 
         public static MemoryStream StrmAssistantJs { get; private set; }
 
+        public static MemoryStream ExternalPlayerJs { get; private set; }
+
         public static void Initialize(IServerConfigurationManager configurationManager)
         {
             try
             {
                 StrmAssistantJs = GetResourceStream("strmassistant.js");
+                ExternalPlayerJs = GetResourceStream("externalplayer.js");
                 ModifyShortcutMenu(configurationManager);
             }
             catch (Exception e)
@@ -51,6 +54,8 @@ const strmAssistantCommandSource = {
     getCommands: function(options) {
         const locale = this.globalize.getCurrentLocale().toLowerCase();
         const cjk = ['zh', 'ja', 'ko'].some(lang => locale.startsWith(lang));
+        const externalPlayerName = locale === 'zh-cn' ? '\u5916\u90E8\u64AD\u653E' :
+            (['zh-hk', 'zh-tw'].includes(locale) ? '\u5916\u90E8\u64AD\u653E' : 'External Player');
         const lockCommandName = ({
             'zh-cn': '\u9501\u5B9A',
             'zh-hk': '\u9396\u5B9A',
@@ -73,6 +78,9 @@ const strmAssistantCommandSource = {
         }
         if (options.items?.length === 1) {
             const result = [];
+            if (['Movie', 'Episode', 'Series', 'Season'].includes(options.items[0].Type)) {
+                result.push({ name: externalPlayerName, id: 'external_player', icon: 'open_in_new' });
+            }
             if (options.items[0].Type === 'Movie') {
                 result.push({ name: this.globalize.translate('HeaderScanLibraryFiles'), id: 'traverse', icon: 'refresh' });
             }
@@ -121,6 +129,11 @@ const strmAssistantCommandSource = {
             unlock: 'unlock',
             clear_intro: 'clear_intro'
         };
+        if (command === 'external_player') {
+            return require(['components/strmassistant/externalplayer']).then(responses => {
+                return responses[0].show(items[0].Id);
+            });
+        }
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');
             const mediaSources = items[0].MediaSources || [];
@@ -157,6 +170,9 @@ setTimeout(() => {
         Emby.importModule('./modules/common/itemmanager/itemmanager.js').then(itemmanager => {
             itemmanager.registerCommandSource(strmAssistantCommandSource);
         });
+    });
+    require(['components/strmassistant/externalplayer']).then(responses => {
+        responses[0].init();
     });
 }, 3000);
     ";
