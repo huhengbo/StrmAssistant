@@ -30,6 +30,16 @@ namespace StrmAssistant.Web.Service
                 (ReadOnlyMemory<byte>)ShortcutMenuHelper.ExternalPlayerJs.GetBuffer(), "application/x-javascript");
         }
 
+        public object Get(GetExternalPlayerConfig request)
+        {
+            var options = Plugin.Instance.GetOptions().ExperienceEnhanceOptions;
+            return new ExternalPlayerConfigResponse
+            {
+                Enabled = options.EnableExternalPlayer,
+                StrmDirect = options.ExternalPlayerStrmDirect
+            };
+        }
+
         public object Get(GetShortcutMenu request)
         {
             return _resultFactory.GetResult(ShortcutMenuHelper.ModifiedShortcutsString.AsSpan(),

@@ -51,6 +51,7 @@ namespace StrmAssistant.Web.Helper
 
             const string injectShortcutCommand = @"
 const strmAssistantCommandSource = {
+    externalPlayerEnabled: false,
     getCommands: function(options) {
         const locale = this.globalize.getCurrentLocale().toLowerCase();
         const cjk = ['zh', 'ja', 'ko'].some(lang => locale.startsWith(lang));
@@ -78,7 +79,7 @@ const strmAssistantCommandSource = {
         }
         if (options.items?.length === 1) {
             const result = [];
-            if (['Movie', 'Episode', 'Series', 'Season'].includes(options.items[0].Type)) {
+            if (this.externalPlayerEnabled && ['Movie', 'Episode', 'Series', 'Season'].includes(options.items[0].Type)) {
                 result.push({ name: externalPlayerName, id: 'external_player', icon: 'open_in_new' });
             }
             if (options.items[0].Type === 'Movie') {
@@ -130,6 +131,7 @@ const strmAssistantCommandSource = {
             clear_intro: 'clear_intro'
         };
         if (command === 'external_player') {
+            if (!this.externalPlayerEnabled) return;
             return require(['components/strmassistant/externalplayer']).then(responses => {
                 return responses[0].show(items[0].Id);
             });
@@ -172,7 +174,15 @@ setTimeout(() => {
         });
     });
     require(['components/strmassistant/externalplayer']).then(responses => {
-        responses[0].init();
+        const externalPlayer = responses[0];
+        return externalPlayer.loadConfig().then(config => {
+            strmAssistantCommandSource.externalPlayerEnabled = !!(config && config.enabled);
+            if (strmAssistantCommandSource.externalPlayerEnabled) {
+                externalPlayer.init();
+            }
+        });
+    }).catch(() => {
+        strmAssistantCommandSource.externalPlayerEnabled = false;
     });
 }, 3000);
     ";

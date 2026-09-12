@@ -2,9 +2,9 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
     'use strict';
 
     const detailButtonId = 'strmAssistantExternalPlayerButton';
-    const strmDirectKey = 'strmassistant.externalPlayer.strmDirect';
     const supportedItemTypes = ['Movie', 'Episode', 'Series', 'Season'];
     let initialized = false;
+    let config = { enabled: false, strmDirect: false };
 
     function localeText(en, zhCn, zhHant) {
         const locale = globalize.getCurrentLocale().toLowerCase();
@@ -18,8 +18,6 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
             externalPlay: localeText('External Player', '外部播放', '外部播放'),
             copy: localeText('Copy Stream URL', '复制播放链接', '複製播放連結'),
             copySuccess: localeText('Stream URL copied', '播放链接已复制', '播放連結已複製'),
-            directOn: localeText('STRM Direct: On', 'STRM 直通：已开启', 'STRM 直通：已開啟'),
-            directOff: localeText('STRM Direct: Off', 'STRM 直通：已关闭', 'STRM 直通：已關閉'),
             noMedia: localeText('No playable media source found', '未找到可播放媒体源', '未找到可播放媒體來源'),
             failed: localeText('Unable to open external player', '无法打开外部播放器', '無法開啟外部播放器'),
             cancel: globalize.translate('Cancel') || 'Cancel'
@@ -34,22 +32,32 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
         isLinux: () => /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent)
     };
 
-    function getStrmDirect() {
-        try {
-            return localStorage.getItem(strmDirectKey) === '1';
-        } catch (_) {
-            return false;
-        }
+    function normalizeConfig(data) {
+        const enabled = data && (data.Enabled !== undefined ? data.Enabled : data.enabled);
+        const strmDirect = data && (data.StrmDirect !== undefined ? data.StrmDirect : data.strmDirect);
+        return {
+            enabled: enabled === true,
+            strmDirect: strmDirect === true
+        };
     }
 
-    function toggleStrmDirect() {
-        const enabled = !getStrmDirect();
+    async function loadConfig() {
         try {
-            localStorage.setItem(strmDirectKey, enabled ? '1' : '0');
+            const apiClient = connectionManager.currentApiClient();
+            const response = await apiClient.ajax({
+                type: 'GET',
+                url: apiClient.getUrl('StrmAssistant/ExternalPlayer/Config')
+            });
+            const data = typeof response === 'string' ? JSON.parse(response) : response;
+            config = normalizeConfig(data);
         } catch (_) {
-            // Ignore storage failures. The current session will simply keep the default behavior.
+            config = { enabled: false, strmDirect: false };
         }
-        return enabled;
+        return config;
+    }
+
+    function getStrmDirect() {
+        return config.strmDirect === true;
     }
 
     function getCurrentMediaSourceId() {
@@ -284,17 +292,52 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
 
     function getAvailablePlayers() {
         const players = [];
-        if (OS.isWindows()) players.push({ id: 'potplayer', name: 'PotPlayer' });
-        players.push({ id: 'vlc', name: 'VLC' });
-        if (OS.isWindows() || OS.isMacOS() || OS.isLinux()) players.push({ id: 'mpv', name: 'MPV' });
-        if (OS.isMacOS()) players.push({ id: 'iina', name: 'IINA' });
-        if (OS.isMacOS() || OS.isIOS()) players.push({ id: 'infuse', name: 'Infuse' });
-        players.push({ id: 'copy', name: getLabels().copy });
+        if (OS.isWindows()) players.push({ id: 'potplayer', name: 'PotPlayer', icon: 'play_arrow' });
+        players.push({ id: 'vlc', name: 'VLC', icon: 'play_arrow' });
+        if (OS.isWindows() || OS.isMacOS() || OS.isLinux()) players.push({ id: 'mpv', name: 'MPV', icon: 'play_arrow' });
+        if (OS.isMacOS()) players.push({ id: 'iina', name: 'IINA', icon: 'play_arrow' });
+        if (OS.isMacOS() || OS.isIOS()) players.push({ id: 'infuse', name: 'Infuse', icon: 'play_arrow' });
+        players.push({ id: 'copy', name: getLabels().copy, icon: 'content_copy' });
         return players;
     }
 
+    async function chooseAction(mediaInfo) {
+        const labels = getLabels();
+        const players = getAvailablePlayers();
+        try {
+            const modules = await require(['actionsheet']);
+            const actionSheet = modules && modules[0];
+            if (actionSheet && typeof actionSheet.show === 'function') {
+                return actionSheet.show({
+                    title: labels.externalPlay,
+                    text: mediaInfo.sourceName ? `${mediaInfo.title}\n${mediaInfo.sourceName}` : mediaInfo.title,
+                    items: players.map(player => ({
+                        name: player.name,
+                        id: player.id,
+                        icon: player.icon
+                    }))
+                });
+            }
+        } catch (_) {
+            // Fall back to Emby's standard dialog on clients without the action-sheet module.
+        }
+
+        const buttons = players.map(player => ({
+            name: player.name,
+            id: player.id,
+            type: 'submit'
+        }));
+        buttons.push({ name: labels.cancel, id: 'cancel', type: 'cancel' });
+        return dialog({
+            title: labels.externalPlay,
+            text: mediaInfo.sourceName ? `${mediaInfo.title}\n${mediaInfo.sourceName}` : mediaInfo.title,
+            buttons: buttons,
+            centerText: false
+        });
+    }
+
     async function show(itemId, preferredMediaSourceId) {
-        if (!itemId) return;
+        if (!itemId || !config.enabled) return;
 
         loading.show();
         let mediaInfo;
@@ -307,41 +350,14 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
         }
         loading.hide();
 
-        const labels = getLabels();
-        const buttons = getAvailablePlayers().map(player => ({
-            name: player.name,
-            id: player.id,
-            type: 'submit'
-        }));
+        const id = await chooseAction(mediaInfo);
+        if (!id || id === 'cancel') return;
 
-        if (/^https?:\/\//i.test(mediaInfo.mediaSource.Path || '')) {
-            buttons.push({
-                name: getStrmDirect() ? labels.directOn : labels.directOff,
-                id: 'toggle_strm_direct',
-                type: 'submit'
-            });
+        try {
+            await launchPlayer(id, mediaInfo);
+        } catch (_) {
+            toast(getLabels().failed);
         }
-        buttons.push({ name: labels.cancel, id: 'cancel', type: 'cancel' });
-
-        dialog({
-            title: labels.externalPlay,
-            text: mediaInfo.sourceName ? `${mediaInfo.title}\n${mediaInfo.sourceName}` : mediaInfo.title,
-            buttons: buttons,
-            centerText: false
-        }).then(async function (id) {
-            if (!id || id === 'cancel') return;
-            if (id === 'toggle_strm_direct') {
-                const enabled = toggleStrmDirect();
-                toast(enabled ? labels.directOn : labels.directOff);
-                return show(itemId, mediaInfo.mediaSource.Id);
-            }
-
-            try {
-                await launchPlayer(id, mediaInfo);
-            } catch (_) {
-                toast(labels.failed);
-            }
-        });
     }
 
     function getItemIdFromLocation() {
@@ -356,7 +372,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
     }
 
     async function addDetailButton(itemId, attempt) {
-        if (!itemId) return;
+        if (!config.enabled || !itemId) return;
         const container = document.querySelector("div[is='emby-scroller']:not(.hide) .mainDetailButtons");
         if (!container) {
             if ((attempt || 0) < 15) {
@@ -378,8 +394,9 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
         const button = document.createElement('button');
         button.id = detailButtonId;
         button.type = 'button';
-        button.className = 'detailButton emby-button button-flat';
+        button.className = 'detailButton emby-button emby-button-backdropfilter raised-backdropfilter detailButton-primary';
         button.title = getLabels().externalPlay;
+        button.setAttribute('aria-label', getLabels().externalPlay);
         button.innerHTML = '<div class="detailButton-content"><i class="md-icon detailButton-icon button-icon button-icon-left material-icons">open_in_new</i><span class="button-text"></span></div>';
         const text = button.querySelector('.button-text');
         if (text) text.textContent = getLabels().externalPlay;
@@ -389,6 +406,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
 
     function handleViewBeforeShow(event) {
         removeDetailButton();
+        if (!config.enabled) return;
         const contextPath = event && event.detail && event.detail.contextPath;
         let itemId = null;
         if (contextPath && contextPath.includes('/item')) {
@@ -400,7 +418,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
     }
 
     function init() {
-        if (initialized) return;
+        if (initialized || !config.enabled) return;
         initialized = true;
         document.addEventListener('viewbeforeshow', handleViewBeforeShow);
         const itemId = getItemIdFromLocation();
@@ -409,6 +427,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'dialog'], functio
 
     return {
         init: init,
+        loadConfig: loadConfig,
         show: show
     };
 });
