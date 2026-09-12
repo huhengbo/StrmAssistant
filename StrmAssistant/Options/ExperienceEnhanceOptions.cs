@@ -8,6 +8,13 @@ namespace StrmAssistant.Options
 {
     public class ExperienceEnhanceOptions : EditableOptionsBase
     {
+        private bool _enableExternalPlayer = true;
+        private bool _externalPlayerStrmDirect;
+
+        internal static bool CurrentEnableExternalPlayer { get; private set; } = true;
+
+        internal static bool CurrentExternalPlayerStrmDirect { get; private set; }
+
         [DisplayNameL("ExperienceEnhanceOptions_EditorTitle_Experience_Enhance", typeof(Resources))]
         public override string EditorTitle => Resources.ExperienceEnhanceOptions_EditorTitle_Experience_Enhance;
         
@@ -43,12 +50,28 @@ namespace StrmAssistant.Options
         [DisplayName("Web 外部播放 / External Player")]
         [Description("在 Emby Web 详情页和更多菜单中显示第三方播放器入口。关闭后不会注入外部播放按钮或菜单项。 / Show third-party player actions in Emby Web. Disabled means no external-player button or menu entry is injected.")]
         [Required]
-        public bool EnableExternalPlayer { get; set; } = true;
+        public bool EnableExternalPlayer
+        {
+            get => _enableExternalPlayer;
+            set
+            {
+                _enableExternalPlayer = value;
+                CurrentEnableExternalPlayer = value;
+            }
+        }
 
         [DisplayName("STRM 直通 / STRM Direct")]
         [Description("对 HTTP/HTTPS STRM 直接使用原始地址，而不是 Emby 串流地址。默认关闭。 / Use the original HTTP/HTTPS STRM URL instead of the Emby stream URL. Disabled by default.")]
         [VisibleCondition(nameof(EnableExternalPlayer), SimpleCondition.IsTrue)]
         [Required]
-        public bool ExternalPlayerStrmDirect { get; set; } = false;
+        public bool ExternalPlayerStrmDirect
+        {
+            get => _externalPlayerStrmDirect;
+            set
+            {
+                _externalPlayerStrmDirect = value;
+                CurrentExternalPlayerStrmDirect = value;
+            }
+        }
     }
 }

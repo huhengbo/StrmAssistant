@@ -1,6 +1,7 @@
 ﻿using System;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Services;
+using StrmAssistant.Options;
 using StrmAssistant.Web.Api;
 using StrmAssistant.Web.Helper;
 
@@ -32,11 +33,10 @@ namespace StrmAssistant.Web.Service
 
         public object Get(GetExternalPlayerConfig request)
         {
-            var options = Plugin.Instance.GetOptions().ExperienceEnhanceOptions;
             return new ExternalPlayerConfigResponse
             {
-                Enabled = options.EnableExternalPlayer,
-                StrmDirect = options.ExternalPlayerStrmDirect
+                Enabled = ExperienceEnhanceOptions.CurrentEnableExternalPlayer,
+                StrmDirect = ExperienceEnhanceOptions.CurrentExternalPlayerStrmDirect
             };
         }
 
