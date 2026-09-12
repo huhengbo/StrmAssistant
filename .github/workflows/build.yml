@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Check web JavaScript syntax
+        run: node --check StrmAssistant/Web/Resources/strmassistant.js && node --check StrmAssistant/Web/Resources/externalplayer.js
+
       - name: Build and test plugin
         run: python scripts/build_plugin.py
 
