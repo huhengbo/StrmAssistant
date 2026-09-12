@@ -8,6 +8,11 @@ import re
 from pathlib import Path
 
 
+REQUIRED_SECTIONS = (
+    "### 📦 升级说明",
+)
+
+
 def extract_version_section(changelog: str, version: str) -> str:
     lines = changelog.splitlines()
     heading = re.compile(rf"^##\s+v?{re.escape(version)}\s*$", re.IGNORECASE)
@@ -31,6 +36,13 @@ def extract_version_section(changelog: str, version: str) -> str:
     body = "\n".join(lines[start:end]).strip()
     if not body:
         raise ValueError(f"CHANGELOG.md 的版本章节为空: {version}")
+
+    missing_sections = [section for section in REQUIRED_SECTIONS if section not in body]
+    if missing_sections:
+        raise ValueError(
+            f"CHANGELOG.md 的 {version} 版本章节缺少发布必填内容: "
+            + ", ".join(missing_sections)
+        )
 
     return body
 
